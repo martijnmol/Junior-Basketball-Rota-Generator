@@ -2,9 +2,13 @@
 import React, { useState, useMemo, useEffect } from 'react'; // <-- IMPORTED useEffect
 import PlayerList from './components/PlayerList';
 import RotaTable from './components/RotaTable';
-import PlayerManagement from './components/PlayerManagement'; 
+import PlayerManagement from './components/PlayerManagement';
+import Settings from './components/Settings';
+import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
 import { Player } from './interfaces';
+import { getScriptUrl, setScriptUrl } from './settingsStorage';
+import { appendMatch, AppendMatchPayload } from './sheetsApi';
 
 // --- Local Storage Configuration ---
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
@@ -54,6 +58,10 @@ const loadSavedData = (): Player[] => {
 function App() {
     // 1. Initialize state using the loading function
     const [players, setPlayers] = useState<Player[]>(loadSavedData);
+    const [scriptUrl, setScriptUrlState] = useState<string | null>(getScriptUrl());
+    const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     // 2. Use useEffect to save playerData whenever it changes
     useEffect(() => {
@@ -97,41 +105,123 @@ function App() {
     };
 
     const togglePresence = (id: number) => {
-        setPlayers(prevPlayers => prevPlayers.map(p => 
+        setPlayers(prevPlayers => prevPlayers.map(p =>
             p.id === id ? { ...p, isPresent: !p.isPresent } : p
         )); // Triggers saving
     };
-    
+
     // Recalculate the rota whenever the list of available players changes
     const rota = useMemo(() => {
         return generateRota(players, NUM_PERIODS, NUM_ON_COURT);
     }, [players]);
 
+    const handleSaveMatch = async () => {
+        if (rota.length === 0 || !scriptUrl) return;
+
+        const presentPlayers = players.filter(p => p.isPresent);
+        const maxPeriods = Math.max(...presentPlayers.map(p =>
+            rota.reduce((count, period) => count + (period.some(pp => pp.id === p.id) ? 1 : 0), 0)
+        ));
+
+        const date = new Date().toISOString().split('T')[0];
+
+        const payload: AppendMatchPayload = {
+            date,
+            shortfallRows: presentPlayers.map(p => {
+                const periodsPlayed = rota.reduce((count, period) =>
+                    count + (period.some(pp => pp.id === p.id) ? 1 : 0), 0);
+                return {
+                    playerName: p.name,
+                    periodsPlayed,
+                    shortfall: maxPeriods - periodsPlayed,
+                };
+            }),
+            historyRows: presentPlayers.map(p => {
+                const periods = rota.map(period => period.some(pp => pp.id === p.id));
+                return {
+                    playerName: p.name,
+                    periods,
+                    total: periods.filter(Boolean).length,
+                };
+            }),
+        };
+
+        setSaveStatus('saving');
+        setSaveError(null);
+        try {
+            await appendMatch(scriptUrl, payload);
+            setSaveStatus('success');
+            setStatsRefreshKey(k => k + 1);
+            setTimeout(() => setSaveStatus('idle'), 3000);
+        } catch (e: any) {
+            setSaveStatus('error');
+            setSaveError(e.message);
+        }
+    };
+
+    const handleUrlChange = (url: string) => {
+        setScriptUrl(url);
+        setScriptUrlState(url || null);
+    };
+
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <h1>🏀 Junior Basketball Rota Generator</h1>
-            
-            {/* --- Player Management Section --- */}
+
+            <Settings />
+
+            <hr style={{ margin: '20px 0' }}/>
+
             <PlayerManagement
                 players={players}
                 onAdd={handleAddPlayer}
                 onRemove={handleRemovePlayer}
                 onEditName={handleEditPlayerName}
             />
-            
+
             <hr style={{ margin: '20px 0' }}/>
-            
-            {/* --- Availability Toggler --- */}
-            <PlayerList 
-                players={players} 
-                onToggle={togglePresence} 
+
+            <PlayerList
+                players={players}
+                onToggle={togglePresence}
                 onReorder={handleReorderPlayers}
             />
-            
+
             <hr style={{ margin: '20px 0' }}/>
-            
-            {/* --- Rota Table --- */}
+
             <RotaTable rota={rota} allPlayers={players} />
+
+            <div style={{ margin: '20px 0' }}>
+                <button
+                    onClick={handleSaveMatch}
+                    disabled={rota.length === 0 || !scriptUrl || saveStatus === 'saving'}
+                    style={{
+                        padding: '10px 24px',
+                        backgroundColor: rota.length === 0 || !scriptUrl ? '#aaa' : '#3f51b5',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: rota.length === 0 || !scriptUrl ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '15px',
+                    }}
+                >
+                    {saveStatus === 'saving' ? 'Saving...' : '💾 Save Match'}
+                </button>
+                {saveStatus === 'success' && (
+                    <span style={{ marginLeft: '12px', color: 'green', fontWeight: 'bold' }}>✓ Match saved!</span>
+                )}
+                {saveStatus === 'error' && (
+                    <span style={{ marginLeft: '12px', color: 'red' }}>⚠️ {saveError}</span>
+                )}
+                {!scriptUrl && (
+                    <span style={{ marginLeft: '12px', color: '#888', fontSize: '13px' }}>Configure Apps Script URL in Settings above to enable saving.</span>
+                )}
+            </div>
+
+            <hr style={{ margin: '20px 0' }}/>
+
+            <StatsTable scriptUrl={scriptUrl} refreshKey={statsRefreshKey} />
         </div>
     );
 }
