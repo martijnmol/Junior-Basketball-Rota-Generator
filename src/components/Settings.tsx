@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import { getScriptUrl, setScriptUrl } from '../settingsStorage';
 
-const Settings: React.FC = () => {
+interface SettingsProps {
+    onUrlChange: (url: string) => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [url, setUrl] = useState(getScriptUrl() ?? '');
 
@@ -11,6 +15,7 @@ const Settings: React.FC = () => {
         const trimmed = url.trim();
         if (trimmed) {
             setScriptUrl(trimmed);
+            onUrlChange(trimmed);
         }
     };
 

@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useMemo, useEffect } from 'react'; // <-- IMPORTED useEffect
+import React, { useState, useMemo, useEffect } from 'react';
 import PlayerList from './components/PlayerList';
 import RotaTable from './components/RotaTable';
 import PlayerManagement from './components/PlayerManagement';
@@ -119,6 +119,7 @@ function App() {
         if (rota.length === 0 || !scriptUrl) return;
 
         const presentPlayers = players.filter(p => p.isPresent);
+        if (presentPlayers.length === 0) return;
         const maxPeriods = Math.max(...presentPlayers.map(p =>
             rota.reduce((count, period) => count + (period.some(pp => pp.id === p.id) ? 1 : 0), 0)
         ));
@@ -168,7 +169,7 @@ function App() {
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <h1>🏀 Junior Basketball Rota Generator</h1>
 
-            <Settings />
+            <Settings onUrlChange={handleUrlChange} />
 
             <hr style={{ margin: '20px 0' }}/>
 
