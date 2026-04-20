@@ -24,25 +24,38 @@ export interface PlayerStats {
 }
 
 export const appendMatch = async (url: string, payload: AppendMatchPayload): Promise<void> => {
+    if (!url) throw new Error('Apps Script URL is not configured.');
+    // Apps Script rejects 'application/json' in no-cors mode; 'text/plain' is required.
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
     });
+    // Note: Apps Script may return HTTP 200 with an HTML error page on redirect — the caller
+    // cannot treat a resolved promise as guaranteed write confirmation.
     if (!response.ok) {
         throw new Error(`Failed to save match: ${response.status}`);
     }
 };
 
+interface SheetRow {
+    PlayerName: string;
+    Shortfall: string;
+}
+
 export const fetchStats = async (url: string): Promise<PlayerStats[]> => {
+    if (!url) throw new Error('Apps Script URL is not configured.');
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`Failed to fetch stats: ${response.status}`);
     }
-    const rows: { PlayerName: string; Shortfall: string }[] = await response.json();
+    const rows = await response.json();
+    if (!Array.isArray(rows)) {
+        throw new Error('Unexpected response from Apps Script — check deployment.');
+    }
 
     const totals: Record<string, number> = {};
-    for (const row of rows) {
+    for (const row of rows as SheetRow[]) {
         const name = row.PlayerName;
         const shortfall = parseInt(row.Shortfall, 10) || 0;
         totals[name] = (totals[name] ?? 0) + shortfall;
