@@ -13,12 +13,17 @@ const StatsTable: React.FC<StatsTableProps> = ({ scriptUrl, refreshKey }) => {
 
     useEffect(() => {
         if (!scriptUrl) return;
+        const controller = new AbortController();
         setLoading(true);
         setError(null);
-        fetchStats(scriptUrl)
+        setStats([]);
+        fetchStats(scriptUrl, controller.signal)
             .then(setStats)
-            .catch(e => setError(e.message))
+            .catch(e => {
+                if (e.name !== 'AbortError') setError(e.message);
+            })
             .finally(() => setLoading(false));
+        return () => controller.abort();
     }, [scriptUrl, refreshKey]);
 
     if (!scriptUrl) {

@@ -43,9 +43,9 @@ interface SheetRow {
     Shortfall: string;
 }
 
-export const fetchStats = async (url: string): Promise<PlayerStats[]> => {
+export const fetchStats = async (url: string, signal?: AbortSignal): Promise<PlayerStats[]> => {
     if (!url) throw new Error('Apps Script URL is not configured.');
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
         throw new Error(`Failed to fetch stats: ${response.status}`);
     }
