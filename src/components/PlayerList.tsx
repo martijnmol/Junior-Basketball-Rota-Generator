@@ -64,10 +64,10 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onToggle, onReorder })
                     <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
                         <Droppable droppableId="player-list">
                             {(droppableProvided: DroppableProvided) => (
-                                <div 
+                                <div
                                     {...droppableProvided.droppableProps}
                                     ref={droppableProvided.innerRef}
-                                    style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}
+                                    style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
                                 >
                                     {players.map((player, index) => (
                                         <Draggable 
@@ -82,9 +82,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onToggle, onReorder })
                                                     {...draggableProvided.draggableProps} 
                                                     {...draggableProvided.dragHandleProps} 
                                                     style={{
-                                                        display: 'inline-block',
                                                         userSelect: 'none',
-                                                        cursor: 'grab', // Drag cursor over the entire area
+                                                        cursor: 'grab',
                                                         ...draggableProvided.draggableProps.style,
                                                     }}
                                                 >
