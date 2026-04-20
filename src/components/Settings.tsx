@@ -8,7 +8,10 @@ const Settings: React.FC = () => {
     const [url, setUrl] = useState(getScriptUrl() ?? '');
 
     const handleSave = () => {
-        setScriptUrl(url.trim());
+        const trimmed = url.trim();
+        if (trimmed) {
+            setScriptUrl(trimmed);
+        }
     };
 
     return (
@@ -26,12 +29,13 @@ const Settings: React.FC = () => {
                     <hr style={{ margin: '10px 0' }} />
 
                     <div style={{ marginBottom: '15px' }}>
-                        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                        <label htmlFor="script-url-input" style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
                             Apps Script URL
                         </label>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <input
-                                type="text"
+                                id="script-url-input"
+                                type="url"
                                 value={url}
                                 onChange={e => setUrl(e.target.value)}
                                 onBlur={handleSave}
