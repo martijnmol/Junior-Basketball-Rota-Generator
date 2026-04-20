@@ -24,31 +24,38 @@ function doGet() {
 }
 
 function doPost(e) {
-  var payload = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // --- Shortfall tab ---
-  var shortfallSheet = ss.getSheetByName(SHORTFALL_SHEET);
-  if (!shortfallSheet) {
-    shortfallSheet = ss.insertSheet(SHORTFALL_SHEET);
-    shortfallSheet.appendRow(['Date', 'PlayerName', 'PeriodsPlayed', 'Shortfall']);
+    // --- Shortfall tab ---
+    var shortfallSheet = ss.getSheetByName(SHORTFALL_SHEET);
+    if (!shortfallSheet) {
+      shortfallSheet = ss.insertSheet(SHORTFALL_SHEET);
+      shortfallSheet.appendRow(['Date', 'PlayerName', 'PeriodsPlayed', 'Shortfall']);
+    }
+    payload.shortfallRows.forEach(function(row) {
+      shortfallSheet.appendRow([payload.date, row.playerName, row.periodsPlayed, row.shortfall]);
+    });
+
+    // --- Match History tab ---
+    var historySheet = ss.getSheetByName(HISTORY_SHEET);
+    if (!historySheet) {
+      historySheet = ss.insertSheet(HISTORY_SHEET);
+      var periodCount = payload.historyRows.length > 0 ? payload.historyRows[0].periods.length : 8;
+      var periodHeaders = [];
+      for (var i = 1; i <= periodCount; i++) { periodHeaders.push('P' + i); }
+      historySheet.appendRow(['Date', 'Player'].concat(periodHeaders).concat(['Total']));
+    }
+    payload.historyRows.forEach(function(row) {
+      var periodCells = row.periods.map(function(played) { return played ? '🏀' : '—'; });
+      historySheet.appendRow([payload.date, row.playerName].concat(periodCells).concat([row.total]));
+    });
+
+    return jsonResponse({ status: 'ok' });
+  } catch (err) {
+    return jsonResponse({ status: 'error', message: err.message });
   }
-  payload.shortfallRows.forEach(function(row) {
-    shortfallSheet.appendRow([payload.date, row.playerName, row.periodsPlayed, row.shortfall]);
-  });
-
-  // --- Match History tab ---
-  var historySheet = ss.getSheetByName(HISTORY_SHEET);
-  if (!historySheet) {
-    historySheet = ss.insertSheet(HISTORY_SHEET);
-    historySheet.appendRow(['Date', 'Player', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'Total']);
-  }
-  payload.historyRows.forEach(function(row) {
-    var periodCells = row.periods.map(function(played) { return played ? '🏀' : '—'; });
-    historySheet.appendRow([payload.date, row.playerName].concat(periodCells).concat([row.total]));
-  });
-
-  return jsonResponse({ status: 'ok' });
 }
 
 function jsonResponse(data) {
