@@ -154,9 +154,9 @@ function App() {
             setSaveStatus('success');
             setStatsRefreshKey(k => k + 1);
             setTimeout(() => setSaveStatus('idle'), 3000);
-        } catch (e: any) {
+        } catch (e) {
             setSaveStatus('error');
-            setSaveError(e.message);
+            setSaveError(e instanceof Error ? e.message : 'An unknown error occurred');
         }
     };
 

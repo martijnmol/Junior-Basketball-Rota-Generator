@@ -13,10 +13,8 @@ const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
 
     const handleSave = () => {
         const trimmed = url.trim();
-        if (trimmed) {
-            setScriptUrl(trimmed);
-            onUrlChange(trimmed);
-        }
+        setScriptUrl(trimmed);
+        onUrlChange(trimmed);
     };
 
     return (

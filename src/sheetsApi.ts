@@ -36,11 +36,15 @@ export const appendMatch = async (url: string, payload: AppendMatchPayload): Pro
     if (!response.ok) {
         throw new Error(`Failed to save match: ${response.status}`);
     }
+    const body = await response.json().catch(() => null);
+    if (body?.status === 'error') {
+        throw new Error(`Apps Script error: ${body.message ?? 'unknown'}`);
+    }
 };
 
 interface SheetRow {
     PlayerName: string;
-    Shortfall: string;
+    Shortfall: string | number;
 }
 
 export const fetchStats = async (url: string, signal?: AbortSignal): Promise<PlayerStats[]> => {
@@ -57,7 +61,7 @@ export const fetchStats = async (url: string, signal?: AbortSignal): Promise<Pla
     const totals: Record<string, number> = {};
     for (const row of rows as SheetRow[]) {
         const name = row.PlayerName;
-        const shortfall = parseInt(row.Shortfall, 10) || 0;
+        const shortfall = Number(row.Shortfall) || 0;
         totals[name] = (totals[name] ?? 0) + shortfall;
     }
 
