@@ -1,20 +1,39 @@
 // src/components/Settings.tsx
 
 import React, { useState } from 'react';
-import { getScriptUrl, setScriptUrl } from '../settingsStorage';
+import { getSpreadsheetId, setSpreadsheetId } from '../settingsStorage';
 
 interface SettingsProps {
-    onUrlChange: (url: string) => void;
+    onIdChange: (id: string) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
+const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
-    const [url, setUrl] = useState(getScriptUrl() ?? '');
+    const [spreadsheetId, setSpreadsheetIdLocal] = useState(getSpreadsheetId() ?? '');
 
     const handleSave = () => {
-        const trimmed = url.trim();
-        setScriptUrl(trimmed);
-        onUrlChange(trimmed);
+        const trimmed = spreadsheetId.trim();
+        setSpreadsheetId(trimmed);
+        onIdChange(trimmed);
+    };
+
+    const handleConnect = () => {
+        // Trigger OAuth proactively (GIS will open a popup)
+        const google = (window as any).google;
+        if (!google?.accounts?.oauth2) {
+            alert('Google Identity Services not loaded yet. Please wait a moment.');
+            return;
+        }
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: '942845479443-lvci36nuggtd2scc7r231fakf4vb3tr7.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/spreadsheets',
+            callback: (response: any) => {
+                if (!response.error) {
+                    alert('Connected to Google! You can now save matches.');
+                }
+            },
+        });
+        client.requestAccessToken();
     };
 
     return (
@@ -32,17 +51,17 @@ const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
                     <hr style={{ margin: '10px 0' }} />
 
                     <div style={{ marginBottom: '15px' }}>
-                        <label htmlFor="script-url-input" style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
-                            Apps Script URL
+                        <label htmlFor="spreadsheet-id-input" style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                            Google Spreadsheet ID
                         </label>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <input
-                                id="script-url-input"
-                                type="url"
-                                value={url}
-                                onChange={e => setUrl(e.target.value)}
+                                id="spreadsheet-id-input"
+                                type="text"
+                                value={spreadsheetId}
+                                onChange={e => setSpreadsheetIdLocal(e.target.value)}
                                 onBlur={handleSave}
-                                placeholder="https://script.google.com/macros/s/..."
+                                placeholder="1fhf_r_ciuaeGqpHo9Zk-LwT7Y58lB-ePVZliCIM30LY"
                                 style={{ flexGrow: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '4px', fontFamily: 'monospace', fontSize: '12px' }}
                             />
                             <button
@@ -52,6 +71,21 @@ const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
                                 Save
                             </button>
                         </div>
+                        <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#666' }}>
+                            Copy from your sheet URL: docs.google.com/spreadsheets/d/<strong>THIS-PART</strong>/edit
+                        </p>
+                    </div>
+
+                    <div style={{ marginBottom: '15px' }}>
+                        <button
+                            onClick={handleConnect}
+                            style={{ padding: '8px 15px', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                            🔗 Connect Google
+                        </button>
+                        <span style={{ marginLeft: '10px', fontSize: '12px', color: '#666' }}>
+                            Optional — auth also triggers automatically when you save a match.
+                        </span>
                     </div>
 
                     <details>
@@ -59,11 +93,10 @@ const Settings: React.FC<SettingsProps> = ({ onUrlChange }) => {
                             How to set up your Google Sheet
                         </summary>
                         <ol style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: '1.8' }}>
-                            <li>Create a new Google Sheet at <a href="https://sheets.google.com" target="_blank" rel="noreferrer">sheets.google.com</a></li>
-                            <li>Open <strong>Extensions → Apps Script</strong></li>
-                            <li>Delete any existing code and paste in the contents of <code>docs/apps-script.gs</code> from this project</li>
-                            <li>Click <strong>Deploy → New deployment</strong>, choose <em>Web app</em>, set <em>Execute as: Me</em> and <em>Who has access: Anyone</em></li>
-                            <li>Copy the web app URL and paste it into the field above</li>
+                            <li>Open your Google Sheet at <a href="https://sheets.google.com" target="_blank" rel="noreferrer">sheets.google.com</a></li>
+                            <li>Create a tab named exactly <code>Shortfall</code> with headers in row 1: <code>Date</code>, <code>PlayerName</code>, <code>PeriodsPlayed</code>, <code>Shortfall</code></li>
+                            <li>Create a tab named exactly <code>Match History</code> with headers in row 1: <code>Date</code>, <code>Player</code>, <code>P1</code>, <code>P2</code>, <code>P3</code>, <code>P4</code>, <code>P5</code>, <code>P6</code>, <code>P7</code>, <code>P8</code>, <code>Total</code></li>
+                            <li>Copy the Spreadsheet ID from the URL and paste it into the field above</li>
                         </ol>
                     </details>
                 </>

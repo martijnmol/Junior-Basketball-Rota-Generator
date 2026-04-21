@@ -2,32 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { fetchStats, PlayerStats } from '../sheetsApi';
 
 interface StatsTableProps {
-    scriptUrl: string | null;
+    spreadsheetId: string | null;
     refreshKey: number; // increment to trigger a refresh
 }
 
-const StatsTable: React.FC<StatsTableProps> = ({ scriptUrl, refreshKey }) => {
+const StatsTable: React.FC<StatsTableProps> = ({ spreadsheetId, refreshKey }) => {
     const [stats, setStats] = useState<PlayerStats[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!scriptUrl) return;
+        if (!spreadsheetId) return;
         const controller = new AbortController();
         setLoading(true);
         setError(null);
         setStats([]);
-        fetchStats(scriptUrl, controller.signal)
+        fetchStats(spreadsheetId, controller.signal)
             .then(setStats)
             .catch(e => {
-                if (e.name !== 'AbortError') setError(e.message);
+                if (e.name !== 'AbortError') setError(e instanceof Error ? e.message : 'Unknown error');
             })
             .finally(() => setLoading(false));
         return () => controller.abort();
-    }, [scriptUrl, refreshKey]);
+    }, [spreadsheetId, refreshKey]);
 
-    if (!scriptUrl) {
-        return <p style={{ color: '#888' }}>Configure your Apps Script URL in Settings to see cumulative stats.</p>;
+    if (!spreadsheetId) {
+        return <p style={{ color: '#888' }}>Configure your Spreadsheet ID in Settings to see cumulative stats.</p>;
     }
 
     return (
