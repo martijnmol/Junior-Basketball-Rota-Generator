@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { getSpreadsheetId, setSpreadsheetId } from '../settingsStorage';
+import { ensureSheetSetup } from '../sheetsApi';
 
 interface SettingsProps {
     onIdChange: (id: string) => void;
@@ -10,6 +11,8 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [spreadsheetId, setSpreadsheetIdLocal] = useState(getSpreadsheetId() ?? '');
+    const [setupStatus, setSetupStatus] = useState<'idle' | 'running' | 'ok' | 'error'>('idle');
+    const [setupError, setSetupError] = useState<string | null>(null);
 
     const handleSave = () => {
         const trimmed = spreadsheetId.trim();
@@ -17,23 +20,21 @@ const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
         onIdChange(trimmed);
     };
 
-    const handleConnect = () => {
-        // Trigger OAuth proactively (GIS will open a popup)
-        const google = (window as any).google;
-        if (!google?.accounts?.oauth2) {
-            alert('Google Identity Services not loaded yet. Please wait a moment.');
+    const handleConnect = async () => {
+        const trimmed = spreadsheetId.trim();
+        if (!trimmed) {
+            alert('Enter a Spreadsheet ID first.');
             return;
         }
-        const client = google.accounts.oauth2.initTokenClient({
-            client_id: '942845479443-lvci36nuggtd2scc7r231fakf4vb3tr7.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/spreadsheets',
-            callback: (response: any) => {
-                if (!response.error) {
-                    alert('Connected to Google! You can now save matches.');
-                }
-            },
-        });
-        client.requestAccessToken();
+        setSetupStatus('running');
+        setSetupError(null);
+        try {
+            await ensureSheetSetup(trimmed);
+            setSetupStatus('ok');
+        } catch (e) {
+            setSetupStatus('error');
+            setSetupError(e instanceof Error ? e.message : 'Unknown error');
+        }
     };
 
     return (
@@ -79,26 +80,23 @@ const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
                     <div style={{ marginBottom: '15px' }}>
                         <button
                             onClick={handleConnect}
-                            style={{ padding: '8px 15px', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            disabled={setupStatus === 'running'}
+                            style={{ padding: '8px 15px', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: setupStatus === 'running' ? 'not-allowed' : 'pointer' }}
                         >
-                            🔗 Connect Google
+                            {setupStatus === 'running' ? 'Setting up...' : '🔗 Connect & set up sheet'}
                         </button>
-                        <span style={{ marginLeft: '10px', fontSize: '12px', color: '#666' }}>
-                            Optional — auth also triggers automatically when you save a match.
-                        </span>
+                        {setupStatus === 'ok' && (
+                            <span style={{ marginLeft: '10px', color: 'green', fontWeight: 'bold' }}>✓ Sheet is ready</span>
+                        )}
+                        {setupStatus === 'error' && (
+                            <span style={{ marginLeft: '10px', color: 'red' }}>⚠️ {setupError}</span>
+                        )}
+                        {setupStatus === 'idle' && (
+                            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#666' }}>
+                                Creates missing tabs and headers automatically.
+                            </span>
+                        )}
                     </div>
-
-                    <details>
-                        <summary style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '8px' }}>
-                            How to set up your Google Sheet
-                        </summary>
-                        <ol style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: '1.8' }}>
-                            <li>Open your Google Sheet at <a href="https://sheets.google.com" target="_blank" rel="noreferrer">sheets.google.com</a></li>
-                            <li>Create a tab named exactly <code>Shortfall</code> with headers in row 1: <code>Date</code>, <code>PlayerName</code>, <code>PeriodsPlayed</code>, <code>Shortfall</code></li>
-                            <li>Create a tab named exactly <code>Match History</code> with headers in row 1: <code>Date</code>, <code>Player</code>, <code>P1</code>, <code>P2</code>, <code>P3</code>, <code>P4</code>, <code>P5</code>, <code>P6</code>, <code>P7</code>, <code>P8</code>, <code>Total</code></li>
-                            <li>Copy the Spreadsheet ID from the URL and paste it into the field above</li>
-                        </ol>
-                    </details>
                 </>
             )}
         </div>

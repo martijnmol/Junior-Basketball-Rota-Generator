@@ -60,10 +60,78 @@ export interface PlayerStats {
     cumulativeShortfall: number;
 }
 
+// ---- Sheet setup ----
+
+const SHORTFALL_HEADERS = ['Date', 'PlayerName', 'PeriodsPlayed', 'Shortfall'];
+const HISTORY_HEADERS = ['Date', 'Player', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'Total'];
+
+export const ensureSheetSetup = async (spreadsheetId: string): Promise<void> => {
+    if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
+    const token = await getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    // 1. Fetch existing sheet titles
+    const metaRes = await fetch(
+        `${SHEETS_BASE}/${spreadsheetId}?fields=sheets.properties.title`,
+        { headers }
+    );
+    if (!metaRes.ok) throw new Error(`Could not read spreadsheet: ${metaRes.status}`);
+    const meta = await metaRes.json();
+    const existingTitles: string[] = (meta.sheets ?? []).map((s: any) => s.properties.title as string);
+
+    // 2. Create any missing tabs via batchUpdate
+    const addRequests = [];
+    if (!existingTitles.includes('Shortfall')) {
+        addRequests.push({ addSheet: { properties: { title: 'Shortfall' } } });
+    }
+    if (!existingTitles.includes('Match History')) {
+        addRequests.push({ addSheet: { properties: { title: 'Match History' } } });
+    }
+    if (addRequests.length > 0) {
+        const batchRes = await fetch(
+            `${SHEETS_BASE}/${spreadsheetId}:batchUpdate`,
+            { method: 'POST', headers, body: JSON.stringify({ requests: addRequests }) }
+        );
+        if (!batchRes.ok) throw new Error(`Failed to create sheet tabs: ${batchRes.status}`);
+    }
+
+    // 3. Read current row 1 of both tabs and overwrite if headers are wrong or missing
+    const [shortfallRow1Res, historyRow1Res] = await Promise.all([
+        fetch(`${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A1:D1`, { headers }),
+        fetch(`${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A1:K1`, { headers }),
+    ]);
+
+    const shortfallRow1: string[] = ((await shortfallRow1Res.json()).values?.[0] ?? []);
+    const historyRow1: string[] = ((await historyRow1Res.json()).values?.[0] ?? []);
+
+    const writePromises: Promise<Response>[] = [];
+
+    if (JSON.stringify(shortfallRow1) !== JSON.stringify(SHORTFALL_HEADERS)) {
+        writePromises.push(fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A1:D1?valueInputOption=RAW`,
+            { method: 'PUT', headers, body: JSON.stringify({ values: [SHORTFALL_HEADERS] }) }
+        ));
+    }
+    if (JSON.stringify(historyRow1) !== JSON.stringify(HISTORY_HEADERS)) {
+        writePromises.push(fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A1:K1?valueInputOption=RAW`,
+            { method: 'PUT', headers, body: JSON.stringify({ values: [HISTORY_HEADERS] }) }
+        ));
+    }
+
+    if (writePromises.length > 0) {
+        const results = await Promise.all(writePromises);
+        for (const res of results) {
+            if (!res.ok) throw new Error(`Failed to write headers: ${res.status}`);
+        }
+    }
+};
+
 // ---- API calls ----
 
 export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPayload): Promise<void> => {
     if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
+    await ensureSheetSetup(spreadsheetId);
     const token = await getAccessToken();
 
     const shortfallValues = payload.shortfallRows.map(row => [
