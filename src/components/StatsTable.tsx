@@ -10,6 +10,7 @@ const StatsTable: React.FC<StatsTableProps> = ({ spreadsheetId, refreshKey }) =>
     const [stats, setStats] = useState<PlayerStats[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     useEffect(() => {
         if (!spreadsheetId) return;
@@ -32,13 +33,19 @@ const StatsTable: React.FC<StatsTableProps> = ({ spreadsheetId, refreshKey }) =>
 
     return (
         <div style={{ marginBottom: '20px' }}>
-            <h2>📊 Cumulative Shortfall</h2>
-            {loading && <p>Loading stats...</p>}
-            {error && <p style={{ color: 'red' }}>⚠️ {error}</p>}
-            {!loading && !error && stats.length === 0 && (
+            <h2
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                style={{ margin: '0 0 10px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+                <span>📊 Cumulative Shortfall</span>
+                <span style={{ fontSize: '14px', fontWeight: 'normal' }}>{isCollapsed ? '🔽 Show' : '🔼 Hide'}</span>
+            </h2>
+            {!isCollapsed && loading && <p>Loading stats...</p>}
+            {!isCollapsed && error && <p style={{ color: 'red' }}>⚠️ {error}</p>}
+            {!isCollapsed && !loading && !error && stats.length === 0 && (
                 <p style={{ color: '#888' }}>No match data saved yet.</p>
             )}
-            {!loading && stats.length > 0 && (
+            {!isCollapsed && !loading && stats.length > 0 && (
                 <table style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ backgroundColor: '#f2f2f2' }}>
