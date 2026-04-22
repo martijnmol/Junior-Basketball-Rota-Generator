@@ -6,9 +6,10 @@ import { ensureSheetSetup } from '../sheetsApi';
 
 interface SettingsProps {
     onIdChange: (id: string) => void;
+    onConnect?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
+const Settings: React.FC<SettingsProps> = ({ onIdChange, onConnect }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [spreadsheetId, setSpreadsheetIdLocal] = useState(getSpreadsheetId() ?? '');
     const [setupStatus, setSetupStatus] = useState<'idle' | 'running' | 'ok' | 'error'>('idle');
@@ -31,6 +32,7 @@ const Settings: React.FC<SettingsProps> = ({ onIdChange }) => {
         try {
             await ensureSheetSetup(trimmed);
             setSetupStatus('ok');
+            onConnect?.();
         } catch (e) {
             setSetupStatus('error');
             setSetupError(e instanceof Error ? e.message : 'Unknown error');

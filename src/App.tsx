@@ -151,7 +151,7 @@ function App() {
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <h1>🏀 Junior Basketball Rota Generator</h1>
 
-            <Settings onIdChange={handleIdChange} />
+            <Settings onIdChange={handleIdChange} onConnect={() => setStatsRefreshKey(k => k + 1)} />
 
             <hr style={{ margin: '20px 0' }}/>
 
