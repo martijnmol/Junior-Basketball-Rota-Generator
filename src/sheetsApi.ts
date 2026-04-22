@@ -182,14 +182,14 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
     await Promise.all([
         shortfallLastRow
             ? fetch(
-                `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A${shortfallLastRow + 1}?valueInputOption=USER_ENTERED`,
-                { method: 'PUT', headers, body: JSON.stringify({ values: [['=""']] }) }
+                `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A${shortfallLastRow + 1}?valueInputOption=RAW`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [['---']] }) }
               )
             : Promise.resolve(),
         historyLastRow
             ? fetch(
-                `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A${historyLastRow + 1}?valueInputOption=USER_ENTERED`,
-                { method: 'PUT', headers, body: JSON.stringify({ values: [['=""']] }) }
+                `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A${historyLastRow + 1}?valueInputOption=RAW`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [['---']] }) }
               )
             : Promise.resolve(),
     ]);
