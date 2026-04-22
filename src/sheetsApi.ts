@@ -151,11 +151,11 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
     const [shortfallRes, historyRes] = await Promise.all([
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:D:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: shortfallValues }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: [...shortfallValues, []] }) }
         ),
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A:K:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: historyValues }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: [...historyValues, []] }) }
         ),
     ]);
 
