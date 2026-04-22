@@ -165,6 +165,9 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
     // The append response tells us exactly where data landed (e.g. "Shortfall!A2:D9").
     // Parse the last row number and PUT a space at the next absolute row — the only
     // reliable way to write a visible blank separator.
+    // Parse the last written row from each append response so we can PUT the spacer
+    // at an exact address. We use a formula (="") so Google Sheets counts the cell
+    // as non-empty — a plain space is trimmed and the next append would overwrite it.
     const shortfallData = await shortfallRes.json();
     const historyData = await historyRes.json();
 
@@ -179,14 +182,14 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
     await Promise.all([
         shortfallLastRow
             ? fetch(
-                `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A${shortfallLastRow + 1}?valueInputOption=RAW`,
-                { method: 'PUT', headers, body: JSON.stringify({ values: [[' ']] }) }
+                `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A${shortfallLastRow + 1}?valueInputOption=USER_ENTERED`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [['=""']] }) }
               )
             : Promise.resolve(),
         historyLastRow
             ? fetch(
-                `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A${historyLastRow + 1}?valueInputOption=RAW`,
-                { method: 'PUT', headers, body: JSON.stringify({ values: [[' ']] }) }
+                `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A${historyLastRow + 1}?valueInputOption=USER_ENTERED`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [['=""']] }) }
               )
             : Promise.resolve(),
     ]);
