@@ -148,20 +148,48 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
 
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-    // Include a spacer row in the same request so it's written atomically after the data
     const [shortfallRes, historyRes] = await Promise.all([
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:D:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: [...shortfallValues, [' ']] }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: shortfallValues }) }
         ),
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A:K:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: [...historyValues, [' ']] }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: historyValues }) }
         ),
     ]);
 
     if (!shortfallRes.ok) throw new Error(`Shortfall write failed: ${shortfallRes.status}`);
     if (!historyRes.ok) throw new Error(`Match History write failed: ${historyRes.status}`);
+
+    // The append response tells us exactly where data landed (e.g. "Shortfall!A2:D9").
+    // Parse the last row number and PUT a space at the next absolute row — the only
+    // reliable way to write a visible blank separator.
+    const shortfallData = await shortfallRes.json();
+    const historyData = await historyRes.json();
+
+    const parseLastRow = (updatedRange: string): number | null => {
+        const match = updatedRange?.match(/(\d+)$/);
+        return match ? parseInt(match[1], 10) : null;
+    };
+
+    const shortfallLastRow = parseLastRow(shortfallData.updates?.updatedRange ?? '');
+    const historyLastRow = parseLastRow(historyData.updates?.updatedRange ?? '');
+
+    await Promise.all([
+        shortfallLastRow
+            ? fetch(
+                `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A${shortfallLastRow + 1}?valueInputOption=RAW`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [[' ']] }) }
+              )
+            : Promise.resolve(),
+        historyLastRow
+            ? fetch(
+                `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A${historyLastRow + 1}?valueInputOption=RAW`,
+                { method: 'PUT', headers, body: JSON.stringify({ values: [[' ']] }) }
+              )
+            : Promise.resolve(),
+    ]);
 };
 
 export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): Promise<PlayerStats[]> => {
