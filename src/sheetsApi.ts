@@ -148,33 +148,20 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
 
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
+    // Include a spacer row in the same request so it's written atomically after the data
     const [shortfallRes, historyRes] = await Promise.all([
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:D:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: shortfallValues }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: [...shortfallValues, [' ']] }) }
         ),
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A:K:append?valueInputOption=USER_ENTERED`,
-            { method: 'POST', headers, body: JSON.stringify({ values: historyValues }) }
+            { method: 'POST', headers, body: JSON.stringify({ values: [...historyValues, [' ']] }) }
         ),
     ]);
 
     if (!shortfallRes.ok) throw new Error(`Shortfall write failed: ${shortfallRes.status}`);
     if (!historyRes.ok) throw new Error(`Match History write failed: ${historyRes.status}`);
-
-    // Append a spacer row (single space in col A) — the API silently drops truly empty rows
-    const [spacerShortfallRes, spacerHistoryRes] = await Promise.all([
-        fetch(
-            `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:A:append?valueInputOption=RAW`,
-            { method: 'POST', headers, body: JSON.stringify({ values: [[' ']] }) }
-        ),
-        fetch(
-            `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A:A:append?valueInputOption=RAW`,
-            { method: 'POST', headers, body: JSON.stringify({ values: [[' ']] }) }
-        ),
-    ]);
-    if (!spacerShortfallRes.ok) throw new Error(`Failed to append spacer row (Shortfall): ${spacerShortfallRes.status}`);
-    if (!spacerHistoryRes.ok) throw new Error(`Failed to append spacer row (Match History): ${spacerHistoryRes.status}`);
 };
 
 export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): Promise<PlayerStats[]> => {
