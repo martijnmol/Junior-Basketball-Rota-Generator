@@ -148,18 +148,6 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
 
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-    // Fetch numeric sheet IDs needed for batchUpdate appendCells (the only reliable way to append a truly blank row)
-    const metaRes = await fetch(
-        `${SHEETS_BASE}/${spreadsheetId}?fields=sheets.properties`,
-        { headers }
-    );
-    if (!metaRes.ok) throw new Error(`Could not read spreadsheet metadata: ${metaRes.status}`);
-    const meta = await metaRes.json();
-    const sheetIdByTitle: Record<string, number> = {};
-    for (const s of meta.sheets ?? []) {
-        sheetIdByTitle[s.properties.title] = s.properties.sheetId;
-    }
-
     const [shortfallRes, historyRes] = await Promise.all([
         fetch(
             `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:D:append?valueInputOption=USER_ENTERED`,
@@ -174,29 +162,19 @@ export const appendMatch = async (spreadsheetId: string, payload: AppendMatchPay
     if (!shortfallRes.ok) throw new Error(`Shortfall write failed: ${shortfallRes.status}`);
     if (!historyRes.ok) throw new Error(`Match History write failed: ${historyRes.status}`);
 
-    // Append a genuinely blank row using batchUpdate appendCells — the values API skips empty rows entirely
-    const blankRowRequest = (sheetId: number) => ({
-        appendCells: {
-            sheetId,
-            rows: [{ values: [{ userEnteredValue: {} }] }],
-            fields: 'userEnteredValue',
-        },
-    });
-
-    const blankRes = await fetch(
-        `${SHEETS_BASE}/${spreadsheetId}:batchUpdate`,
-        {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                requests: [
-                    blankRowRequest(sheetIdByTitle['Shortfall']),
-                    blankRowRequest(sheetIdByTitle['Match History']),
-                ],
-            }),
-        }
-    );
-    if (!blankRes.ok) throw new Error(`Failed to append blank rows: ${blankRes.status}`);
+    // Append a spacer row (single space in col A) — the API silently drops truly empty rows
+    const [spacerShortfallRes, spacerHistoryRes] = await Promise.all([
+        fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Shortfall!A:A:append?valueInputOption=RAW`,
+            { method: 'POST', headers, body: JSON.stringify({ values: [[' ']] }) }
+        ),
+        fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Match%20History!A:A:append?valueInputOption=RAW`,
+            { method: 'POST', headers, body: JSON.stringify({ values: [[' ']] }) }
+        ),
+    ]);
+    if (!spacerShortfallRes.ok) throw new Error(`Failed to append spacer row (Shortfall): ${spacerShortfallRes.status}`);
+    if (!spacerHistoryRes.ok) throw new Error(`Failed to append spacer row (Match History): ${spacerHistoryRes.status}`);
 };
 
 export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): Promise<PlayerStats[]> => {
