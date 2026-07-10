@@ -8,7 +8,7 @@ import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
 import { Player } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
-import { appendMatch, AppendMatchPayload } from './sheetsApi';
+import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet } from './sheetsApi';
 
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
 
@@ -56,7 +56,24 @@ function App() {
         } catch (error) {
             console.error('Error saving data to local storage:', error);
         }
-    }, [players]);
+        if (spreadsheetId) {
+            savePlayers(spreadsheetId, players).catch(err =>
+                console.error('Error saving players to sheet:', err)
+            );
+        }
+    }, [players, spreadsheetId]);
+
+    useEffect(() => {
+        if (!spreadsheetId) return;
+        loadPlayersFromSheet(spreadsheetId).then(sheetPlayers => {
+            if (sheetPlayers !== null) {
+                setPlayers(sheetPlayers);
+            }
+        }).catch(err => {
+            console.error('Error loading players from sheet:', err);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // intentionally empty — only run once on mount
 
     const handleReorderPlayers = (startIndex: number, endIndex: number) => {
         const result = Array.from(players);
