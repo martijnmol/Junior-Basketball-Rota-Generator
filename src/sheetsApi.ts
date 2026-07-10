@@ -226,7 +226,7 @@ export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): P
         .sort((a, b) => b.cumulativeShortfall - a.cumulativeShortfall);
 };
 
-const PLAYERS_HEADERS = ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'];
+const PLAYERS_HEADERS = ['id', 'name', 'isPresent'];
 
 export const savePlayers = async (spreadsheetId: string, players: Player[]): Promise<void> => {
     if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
@@ -251,7 +251,7 @@ export const savePlayers = async (spreadsheetId: string, players: Player[]): Pro
 
     const rows = [
         PLAYERS_HEADERS,
-        ...players.map(p => [p.id, p.name, p.periodsPlayed, p.lastPlayedPeriod, p.isPresent]),
+        ...players.map(p => [p.id, p.name, p.isPresent]),
     ];
 
     const putRes = await fetch(
@@ -266,7 +266,7 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
     try {
         const token = await getAccessToken();
         const res = await fetch(
-            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A:E`,
+            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A:C`,
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
         if (!res.ok) return null;
@@ -277,9 +277,9 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
         return rows.slice(1).map(row => ({
             id: Number(row[0]),
             name: row[1] ?? '',
-            periodsPlayed: Number(row[2]),
-            lastPlayedPeriod: Number(row[3]),
-            isPresent: row[4] === 'TRUE' || row[4] === 'true',
+            periodsPlayed: 0,
+            lastPlayedPeriod: -1,
+            isPresent: row[2] === 'TRUE' || row[2] === 'true',
         }));
     } catch {
         return null;

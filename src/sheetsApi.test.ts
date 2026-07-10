@@ -51,10 +51,10 @@ describe('savePlayers', () => {
     expect(putCall[1].method).toBe('PUT');
     const body = JSON.parse(putCall[1].body);
     // First row is headers
-    expect(body.values[0]).toEqual(['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent']);
-    // Subsequent rows are player data
-    expect(body.values[1]).toEqual([1, 'Alex', 0, -1, true]);
-    expect(body.values[2]).toEqual([2, 'Ben', 0, -1, false]);
+    expect(body.values[0]).toEqual(['id', 'name', 'isPresent']);
+    // Subsequent rows are player data (periodsPlayed/lastPlayedPeriod are runtime-only, not stored)
+    expect(body.values[1]).toEqual([1, 'Alex', true]);
+    expect(body.values[2]).toEqual([2, 'Ben', false]);
   });
 
   it('skips tab creation if Players tab already exists', async () => {
@@ -95,9 +95,9 @@ describe('loadPlayersFromSheet', () => {
       ok: true,
       json: async () => ({
         values: [
-          ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'],
-          ['1', 'Alex', '0', '-1', 'true'],
-          ['2', 'Ben', '0', '-1', 'false'],
+          ['id', 'name', 'isPresent'],
+          ['1', 'Alex', 'true'],
+          ['2', 'Ben', 'false'],
         ],
       }),
     });
@@ -105,7 +105,7 @@ describe('loadPlayersFromSheet', () => {
 
     const result = await loadPlayersFromSheet('sheet-id-123');
     expect(result).toEqual(PLAYERS_FOR_LOAD);
-    expect(fetchMock.mock.calls[0][0]).toContain('Players!A:E');
+    expect(fetchMock.mock.calls[0][0]).toContain('Players!A:C');
   });
 
   it('returns null when the Players tab is empty (no values key)', async () => {
@@ -121,7 +121,7 @@ describe('loadPlayersFromSheet', () => {
   it('returns null when only a header row exists (no player data)', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ values: [['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent']] }),
+      json: async () => ({ values: [['id', 'name', 'isPresent']] }),
     }) as any;
 
     const result = await loadPlayersFromSheet('sheet-id-123');
@@ -144,9 +144,9 @@ describe('loadPlayersFromSheet', () => {
       ok: true,
       json: async () => ({
         values: [
-          ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'],
-          ['1', 'Alex', '0', '-1', 'TRUE'],
-          ['2', 'Ben', '0', '-1', 'FALSE'],
+          ['id', 'name', 'isPresent'],
+          ['1', 'Alex', 'TRUE'],
+          ['2', 'Ben', 'FALSE'],
         ],
       }),
     }) as any;
