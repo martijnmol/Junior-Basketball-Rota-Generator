@@ -156,13 +156,6 @@ function App() {
     const handleIdChange = (id: string) => {
         setSpreadsheetId(id);
         setSpreadsheetIdState(id || null);
-        // Explicitly save players when a sheet is connected so the Players tab
-        // appears immediately without needing a separate player change.
-        if (id) {
-            savePlayers(id, players).catch(err =>
-                console.error('Error saving players to sheet on connect:', err)
-            );
-        }
     };
 
     return (
