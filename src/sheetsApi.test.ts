@@ -1,8 +1,13 @@
 // src/sheetsApi.test.ts
-import { savePlayers } from './sheetsApi';
 import { Player } from './interfaces';
 
-beforeEach(() => {
+// We re-require sheetsApi in each test to reset the module-level accessToken
+let savePlayers: (spreadsheetId: string, players: Player[]) => Promise<void>;
+
+beforeEach(async () => {
+  jest.resetModules();
+  savePlayers = (await import('./sheetsApi')).savePlayers;
+
   (window as any).google = {
     accounts: {
       oauth2: {
@@ -18,7 +23,6 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.resetAllMocks();
-  jest.resetModules();
 });
 
 const PLAYERS: Player[] = [
