@@ -253,3 +253,21 @@ export const savePlayers = async (spreadsheetId: string, players: Player[]): Pro
     );
     if (!putRes.ok) throw new Error(`Failed to save players: ${putRes.status}`);
 };
+
+export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Player[] | null> => {
+    if (!spreadsheetId) return null;
+    try {
+        const token = await getAccessToken();
+        const res = await fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A1`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const cell: string = data.values?.[0]?.[0] ?? '';
+        if (!cell) return null;
+        return JSON.parse(cell) as Player[];
+    } catch {
+        return null;
+    }
+};
