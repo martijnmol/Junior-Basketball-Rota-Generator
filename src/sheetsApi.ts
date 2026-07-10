@@ -1,4 +1,5 @@
 // src/sheetsApi.ts
+import { Player } from './interfaces';
 
 const CLIENT_ID = '942845479443-lvci36nuggtd2scc7r231fakf4vb3tr7.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -223,4 +224,32 @@ export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): P
     return Object.entries(totals)
         .map(([playerName, cumulativeShortfall]) => ({ playerName, cumulativeShortfall }))
         .sort((a, b) => b.cumulativeShortfall - a.cumulativeShortfall);
+};
+
+export const savePlayers = async (spreadsheetId: string, players: Player[]): Promise<void> => {
+    if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
+    const token = await getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    const metaRes = await fetch(
+        `${SHEETS_BASE}/${spreadsheetId}?fields=sheets.properties.title`,
+        { headers }
+    );
+    if (!metaRes.ok) throw new Error(`Could not read spreadsheet: ${metaRes.status}`);
+    const meta = await metaRes.json();
+    const existingTitles: string[] = (meta.sheets ?? []).map((s: any) => s.properties.title as string);
+
+    if (!existingTitles.includes('Players')) {
+        const batchRes = await fetch(
+            `${SHEETS_BASE}/${spreadsheetId}:batchUpdate`,
+            { method: 'POST', headers, body: JSON.stringify({ requests: [{ addSheet: { properties: { title: 'Players' } } }] }) }
+        );
+        if (!batchRes.ok) throw new Error(`Failed to create Players tab: ${batchRes.status}`);
+    }
+
+    const putRes = await fetch(
+        `${SHEETS_BASE}/${spreadsheetId}/values/Players!A1?valueInputOption=RAW`,
+        { method: 'PUT', headers, body: JSON.stringify({ values: [[JSON.stringify(players)]] }) }
+    );
+    if (!putRes.ok) throw new Error(`Failed to save players: ${putRes.status}`);
 };
