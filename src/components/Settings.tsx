@@ -4,6 +4,11 @@ import React, { useState } from 'react';
 import { getSpreadsheetId, setSpreadsheetId } from '../settingsStorage';
 import { ensureSheetSetup } from '../sheetsApi';
 
+const FAVOURITES: { label: string; id: string }[] = [
+    { label: 'x10-1', id: '1fhf_r_ciuaeGqpHo9Zk-LwT7Y58lB-ePVZliCIM30LY' },
+    { label: 'x12-3', id: '13ibmp8n_Ew0pSlW58yEH_6NOGgvqm5JvxaVMugeL56Q' },
+];
+
 interface SettingsProps {
     onIdChange: (id: string) => void;
     onConnect?: () => void;
@@ -57,6 +62,24 @@ const Settings: React.FC<SettingsProps> = ({ onIdChange, onConnect }) => {
                         <label htmlFor="spreadsheet-id-input" style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
                             Google Spreadsheet ID
                         </label>
+                        <div style={{ marginBottom: '8px' }}>
+                            <select
+                                onChange={e => {
+                                    if (!e.target.value) return;
+                                    setSpreadsheetIdLocal(e.target.value);
+                                    setSpreadsheetId(e.target.value);
+                                    onIdChange(e.target.value);
+                                    e.target.value = '';
+                                }}
+                                defaultValue=""
+                                style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }}
+                            >
+                                <option value="" disabled>⭐ Favourites…</option>
+                                {FAVOURITES.map(f => (
+                                    <option key={f.id} value={f.id}>{f.label}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <input
                                 id="spreadsheet-id-input"
