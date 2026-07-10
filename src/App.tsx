@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import PlayerList from './components/PlayerList';
 import RotaTable from './components/RotaTable';
 import PlayerManagement from './components/PlayerManagement';
@@ -49,8 +49,10 @@ function App() {
     const [statsRefreshKey, setStatsRefreshKey] = useState(0);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const [saveError, setSaveError] = useState<string | null>(null);
+    const initialLoadDone = useRef(false);
 
     useEffect(() => {
+        if (!initialLoadDone.current) return;
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(players));
         } catch (error) {
@@ -64,13 +66,18 @@ function App() {
     }, [players, spreadsheetId]);
 
     useEffect(() => {
-        if (!spreadsheetId) return;
+        if (!spreadsheetId) {
+            initialLoadDone.current = true;
+            return;
+        }
         loadPlayersFromSheet(spreadsheetId).then(sheetPlayers => {
             if (sheetPlayers !== null) {
                 setPlayers(sheetPlayers);
             }
         }).catch(err => {
             console.error('Error loading players from sheet:', err);
+        }).finally(() => {
+            initialLoadDone.current = true;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // intentionally empty — only run once on mount

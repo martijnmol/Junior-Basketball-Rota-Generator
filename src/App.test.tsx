@@ -87,14 +87,35 @@ describe('App — player persistence', () => {
     expect(screen.getByText('LocalPlayer')).toBeInTheDocument();
   });
 
-  it('calls savePlayers when spreadsheetId is set and players change', async () => {
+  it('does not call savePlayers on initial render (ref guard prevents overwrite)', async () => {
     jest.spyOn(settingsStorage, 'getSpreadsheetId').mockReturnValue('my-sheet-id');
     (sheetsApi.loadPlayersFromSheet as jest.Mock).mockResolvedValue(null);
 
     render(<App />);
 
+    // Before initial load settles
+    expect(sheetsApi.savePlayers).not.toHaveBeenCalled();
+
+    // After initial load settles (finally block sets initialLoadDone = true)
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
+
+    // Still not called — no player change happened after load settled
+    expect(sheetsApi.savePlayers).not.toHaveBeenCalled();
+  });
+
+  it('calls savePlayers after initial load settles when sheet data replaces players', async () => {
+    jest.spyOn(settingsStorage, 'getSpreadsheetId').mockReturnValue('my-sheet-id');
+    const sheetPlayers = [
+      { id: 7, name: 'SheetPlayer', periodsPlayed: 0, lastPlayedPeriod: -1, isPresent: true },
+    ];
+    (sheetsApi.loadPlayersFromSheet as jest.Mock).mockResolvedValue(sheetPlayers);
+
+    render(<App />);
+
+    // After load completes, setPlayers(sheetPlayers) fires, which triggers persist effect
+    // (initialLoadDone is true at this point because finally runs after then)
     await waitFor(() => {
-      expect(sheetsApi.savePlayers).toHaveBeenCalledWith('my-sheet-id', expect.any(Array));
+      expect(sheetsApi.savePlayers).toHaveBeenCalledWith('my-sheet-id', sheetPlayers);
     });
   });
 
