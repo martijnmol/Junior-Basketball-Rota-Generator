@@ -66,21 +66,8 @@ function App() {
     }, [players, spreadsheetId]);
 
     useEffect(() => {
-        if (!spreadsheetId) {
-            initialLoadDone.current = true;
-            return;
-        }
-        loadPlayersFromSheet(spreadsheetId).then(sheetPlayers => {
-            if (sheetPlayers !== null) {
-                setPlayers(sheetPlayers);
-            }
-        }).catch(err => {
-            console.error('Error loading players from sheet:', err);
-        }).finally(() => {
-            initialLoadDone.current = true;
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // intentionally empty — only run once on mount
+        initialLoadDone.current = true;
+    }, []);
 
     const handleReorderPlayers = (startIndex: number, endIndex: number) => {
         const result = Array.from(players);
@@ -182,7 +169,14 @@ function App() {
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <h1>🏀 Junior Basketball Rota Generator</h1>
 
-            <Settings onIdChange={handleIdChange} onConnect={() => setStatsRefreshKey(k => k + 1)} />
+            <Settings onIdChange={handleIdChange} onConnect={() => {
+                setStatsRefreshKey(k => k + 1);
+                if (spreadsheetId) {
+                    loadPlayersFromSheet(spreadsheetId).then(sheetPlayers => {
+                        if (sheetPlayers !== null) setPlayers(sheetPlayers);
+                    }).catch(err => console.error('Error loading players on connect:', err));
+                }
+            }} />
 
             <hr style={{ margin: '20px 0' }}/>
 
