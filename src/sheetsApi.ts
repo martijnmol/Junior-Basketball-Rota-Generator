@@ -226,6 +226,8 @@ export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): P
         .sort((a, b) => b.cumulativeShortfall - a.cumulativeShortfall);
 };
 
+const PLAYERS_HEADERS = ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'];
+
 export const savePlayers = async (spreadsheetId: string, players: Player[]): Promise<void> => {
     if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
     const token = await getAccessToken();
@@ -247,9 +249,14 @@ export const savePlayers = async (spreadsheetId: string, players: Player[]): Pro
         if (!batchRes.ok) throw new Error(`Failed to create Players tab: ${batchRes.status}`);
     }
 
+    const rows = [
+        PLAYERS_HEADERS,
+        ...players.map(p => [p.id, p.name, p.periodsPlayed, p.lastPlayedPeriod, p.isPresent]),
+    ];
+
     const putRes = await fetch(
         `${SHEETS_BASE}/${spreadsheetId}/values/Players!A1?valueInputOption=RAW`,
-        { method: 'PUT', headers, body: JSON.stringify({ values: [[JSON.stringify(players)]] }) }
+        { method: 'PUT', headers, body: JSON.stringify({ values: rows }) }
     );
     if (!putRes.ok) throw new Error(`Failed to save players: ${putRes.status}`);
 };
@@ -259,14 +266,21 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
     try {
         const token = await getAccessToken();
         const res = await fetch(
-            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A1`,
+            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A:E`,
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
         if (!res.ok) return null;
         const data = await res.json();
-        const cell: string = data.values?.[0]?.[0] ?? '';
-        if (!cell) return null;
-        return JSON.parse(cell) as Player[];
+        const rows: string[][] = data.values ?? [];
+        // First row is headers; need at least one data row
+        if (rows.length < 2) return null;
+        return rows.slice(1).map(row => ({
+            id: Number(row[0]),
+            name: row[1] ?? '',
+            periodsPlayed: Number(row[2]),
+            lastPlayedPeriod: Number(row[3]),
+            isPresent: row[4] === 'TRUE' || row[4] === 'true',
+        }));
     } catch {
         return null;
     }

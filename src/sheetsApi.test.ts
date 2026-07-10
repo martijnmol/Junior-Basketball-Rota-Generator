@@ -34,7 +34,7 @@ const PLAYERS: Player[] = [
 ];
 
 describe('savePlayers', () => {
-  it('creates the Players tab if missing and writes JSON to A1', async () => {
+  it('creates the Players tab if missing and writes rows to A1', async () => {
     const fetchMock = jest.fn();
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -50,7 +50,11 @@ describe('savePlayers', () => {
     expect(putCall[0]).toContain('Players!A1');
     expect(putCall[1].method).toBe('PUT');
     const body = JSON.parse(putCall[1].body);
-    expect(body.values[0][0]).toBe(JSON.stringify(PLAYERS));
+    // First row is headers
+    expect(body.values[0]).toEqual(['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent']);
+    // Subsequent rows are player data
+    expect(body.values[1]).toEqual([1, 'Alex', 0, -1, true]);
+    expect(body.values[2]).toEqual([2, 'Ben', 0, -1, false]);
   });
 
   it('skips tab creation if Players tab already exists', async () => {
@@ -86,16 +90,22 @@ const PLAYERS_FOR_LOAD: Player[] = [
 ];
 
 describe('loadPlayersFromSheet', () => {
-  it('returns parsed players when A1 contains valid JSON', async () => {
+  it('returns parsed players from row data', async () => {
     const fetchMock = jest.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ values: [[JSON.stringify(PLAYERS_FOR_LOAD)]] }),
+      json: async () => ({
+        values: [
+          ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'],
+          ['1', 'Alex', '0', '-1', 'true'],
+          ['2', 'Ben', '0', '-1', 'false'],
+        ],
+      }),
     });
     global.fetch = fetchMock as any;
 
     const result = await loadPlayersFromSheet('sheet-id-123');
     expect(result).toEqual(PLAYERS_FOR_LOAD);
-    expect(fetchMock.mock.calls[0][0]).toContain('Players!A1');
+    expect(fetchMock.mock.calls[0][0]).toContain('Players!A:E');
   });
 
   it('returns null when the Players tab is empty (no values key)', async () => {
@@ -108,10 +118,10 @@ describe('loadPlayersFromSheet', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when A1 is an empty string', async () => {
+  it('returns null when only a header row exists (no player data)', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ values: [['']] }),
+      json: async () => ({ values: [['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent']] }),
     }) as any;
 
     const result = await loadPlayersFromSheet('sheet-id-123');
@@ -129,13 +139,20 @@ describe('loadPlayersFromSheet', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when JSON.parse fails (corrupt data)', async () => {
+  it('parses isPresent correctly for TRUE/true/false values', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ values: [['not-valid-json{']] }),
+      json: async () => ({
+        values: [
+          ['id', 'name', 'periodsPlayed', 'lastPlayedPeriod', 'isPresent'],
+          ['1', 'Alex', '0', '-1', 'TRUE'],
+          ['2', 'Ben', '0', '-1', 'FALSE'],
+        ],
+      }),
     }) as any;
 
     const result = await loadPlayersFromSheet('sheet-id-123');
-    expect(result).toBeNull();
+    expect(result![0].isPresent).toBe(true);
+    expect(result![1].isPresent).toBe(false);
   });
 });
