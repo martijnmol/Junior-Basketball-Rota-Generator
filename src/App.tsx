@@ -50,6 +50,11 @@ function App() {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const [saveError, setSaveError] = useState<string | null>(null);
     const initialLoadDone = useRef(false);
+    const spreadsheetIdRef = useRef(spreadsheetId);
+
+    useEffect(() => {
+        spreadsheetIdRef.current = spreadsheetId;
+    }, [spreadsheetId]);
 
     useEffect(() => {
         if (!initialLoadDone.current) return;
@@ -58,12 +63,12 @@ function App() {
         } catch (error) {
             console.error('Error saving data to local storage:', error);
         }
-        if (spreadsheetId) {
-            savePlayers(spreadsheetId, players).catch(err =>
+        if (spreadsheetIdRef.current) {
+            savePlayers(spreadsheetIdRef.current, players).catch(err =>
                 console.error('Error saving players to sheet:', err)
             );
         }
-    }, [players, spreadsheetId]);
+    }, [players]);
 
     useEffect(() => {
         initialLoadDone.current = true;
