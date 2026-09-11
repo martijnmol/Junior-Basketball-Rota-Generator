@@ -65,6 +65,7 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
                 cursor: isDragging ? 'grabbing' : 'grab',
                 zIndex: isDragging ? 100 : 1,
                 userSelect: 'none',
+                touchAction: 'none',
             }}
         >
             <div
@@ -113,9 +114,7 @@ const CourtModal: React.FC<CourtModalProps> = ({
 
     const sensors = useSensors(
         useSensor(PointerSensor),
-        // TouchSensor with a small distance constraint: the finger must move ≥8 px
-        // before drag activates, giving the browser time to decide it's not a scroll.
-        useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor),
     );
 
     const handleDragEnd = useCallback(
