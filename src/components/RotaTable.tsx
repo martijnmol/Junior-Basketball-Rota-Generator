@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Rota, Player, PeriodPositions, PositionRota } from '../interfaces';
+import { Rota, Player, PeriodPositions, PositionRota, POSITION_COLORS } from '../interfaces';
 import { getPlayerPosition } from '../positionLogic';
 import CourtSvg from './CourtSvg';
 import CourtModal from './CourtModal';
@@ -108,7 +108,7 @@ const RotaTable: React.FC<RotaTableProps> = ({
                                                     >
                                                         <CourtSvg
                                                             width={56}
-                                                            dots={[{ position, color: '#e84c00' }]}
+                                                            dots={[{ position, color: POSITION_COLORS[position] }]}
                                                         />
                                                     </div>
                                                 ) : isPlaying ? (

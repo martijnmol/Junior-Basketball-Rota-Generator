@@ -23,7 +23,7 @@ const CourtSvg: React.FC<CourtSvgProps> = ({ width, dots = [] }) => {
     });
 
     const isLarge = width > 100;
-    const dotR = isLarge ? 7 : 4;
+    const dotR = isLarge ? 7 : 18;
     const labelFontSize = isLarge ? 9 : 0; // hide labels in mini mode
 
     return (
@@ -43,15 +43,16 @@ const CourtSvg: React.FC<CourtSvgProps> = ({ width, dots = [] }) => {
             {/* Free throw line */}
             <line x1="76" y1="58" x2="124" y2="58" stroke="#8B4513" strokeWidth="1.5" />
 
-            {/* Free throw circle (upper half) */}
-            <path d="M 76 58 A 24 24 0 0 1 124 58" fill="none" stroke="#8B4513" strokeWidth="1.5" />
+            {/* Free throw circle (lower half — bows toward centre court) */}
+            <path d="M 76 58 A 24 24 0 0 0 124 58" fill="none" stroke="#8B4513" strokeWidth="1.5" />
 
-            {/* Three-point arc */}
-            <path d="M 16 158 A 92 92 0 0 1 184 158" fill="none" stroke="#8B4513" strokeWidth="1.5" />
+            {/* Three-point arc — centered on basket (100, 16), radius 90 */}
+            {/* Corner intersection: x=16/184, y=16+sqrt(90²−84²)≈48 */}
+            <path d="M 16 48 A 90 90 0 0 0 184 48" fill="none" stroke="#8B4513" strokeWidth="1.5" />
 
             {/* Corner three-point lines */}
-            <line x1="16" y1="110" x2="16" y2="158" stroke="#8B4513" strokeWidth="1.5" />
-            <line x1="184" y1="110" x2="184" y2="158" stroke="#8B4513" strokeWidth="1.5" />
+            <line x1="16" y1="2" x2="16" y2="48" stroke="#8B4513" strokeWidth="1.5" />
+            <line x1="184" y1="2" x2="184" y2="48" stroke="#8B4513" strokeWidth="1.5" />
 
             {/* Position dots */}
             {dots.map(({ position, color = '#e84c00', label }) => {

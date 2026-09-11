@@ -11,6 +11,7 @@ import {
     Position,
     PeriodPositions,
     POSITION_COORDS,
+    POSITION_COLORS,
     POSITION_LABELS,
     POSITION_ORDER,
 } from '../interfaces';
@@ -43,6 +44,7 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
 
     const player = players.find(p => p.id === playerId);
     const coords = POSITION_COORDS[position];
+    const color = POSITION_COLORS[position];
 
     return (
         <div
@@ -63,14 +65,14 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
         >
             <div
                 style={{
-                    background: isOver ? '#ffa500' : isDragging ? '#ffcc66' : 'white',
-                    border: `2px solid ${isOver ? '#e84c00' : '#555'}`,
+                    background: isOver ? `${color}22` : isDragging ? `${color}18` : 'white',
+                    border: `2px solid ${color}`,
                     borderRadius: 8,
                     padding: '3px 6px',
                     fontSize: 12,
                     fontWeight: 'bold',
                     opacity: isDragging ? 0.7 : 1,
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                    boxShadow: `0 2px 8px ${color}88`,
                     transition: 'background 0.1s, border-color 0.1s',
                 }}
             >
