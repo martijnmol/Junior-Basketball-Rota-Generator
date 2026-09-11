@@ -1,7 +1,11 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
     DndContext,
     DragEndEvent,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
     useDroppable,
     useDraggable,
 } from '@dnd-kit/core';
@@ -100,6 +104,20 @@ const CourtModal: React.FC<CourtModalProps> = ({
     onPositionsChange,
     onClose,
 }) => {
+    // Lock body scroll so the page doesn't steal touch events during drag.
+    useEffect(() => {
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev; };
+    }, []);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        // TouchSensor with a small distance constraint: the finger must move ≥8 px
+        // before drag activates, giving the browser time to decide it's not a scroll.
+        useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
+    );
+
     const handleDragEnd = useCallback(
         (event: DragEndEvent) => {
             const { active, over } = event;
@@ -158,7 +176,7 @@ const CourtModal: React.FC<CourtModalProps> = ({
                 <p style={{ margin: '0 0 12px', fontSize: 13, color: '#666' }}>
                     Drag player chips to swap their court positions.
                 </p>
-                <DndContext onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} onDragEnd={handleDragEnd} autoScroll={false}>
                     <div style={{ position: 'relative', width: 400, height: 320 }}>
                         <CourtSvg width={400} dots={[]} />
                         {POSITION_ORDER.map(pos => (
