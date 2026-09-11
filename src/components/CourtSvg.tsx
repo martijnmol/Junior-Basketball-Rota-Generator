@@ -8,13 +8,14 @@ export interface CourtDot {
 }
 
 interface CourtSvgProps {
-    width: number;
+    width: number | string;
     dots?: CourtDot[];
 }
 
 // viewBox is always 200×160. width controls rendered size; height scales proportionally.
 const CourtSvg: React.FC<CourtSvgProps> = ({ width, dots = [] }) => {
-    const height = Math.round(width * 0.8); // 160/200 = 0.8
+    const isNumeric = typeof width === 'number';
+    const height = isNumeric ? Math.round((width as number) * 0.8) : '100%';
 
     // Convert POSITION_COORDS percentages to SVG units (viewBox 200×160)
     const toSvg = (pct: { x: number; y: number }) => ({
@@ -22,7 +23,7 @@ const CourtSvg: React.FC<CourtSvgProps> = ({ width, dots = [] }) => {
         cy: (pct.y / 100) * 160,
     });
 
-    const isLarge = width > 100;
+    const isLarge = !isNumeric || (width as number) > 100;
     const dotR = isLarge ? 7 : 18;
     const labelFontSize = isLarge ? 9 : 0; // hide labels in mini mode
 

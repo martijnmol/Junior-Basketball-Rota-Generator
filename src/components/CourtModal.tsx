@@ -143,9 +143,10 @@ const CourtModal: React.FC<CourtModalProps> = ({
                 style={{
                     background: 'white',
                     borderRadius: 12,
-                    padding: 20,
+                    padding: '12px 0',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    maxWidth: '90vw',
+                    width: '100%',
+                    boxSizing: 'border-box' as const,
                 }}
                 onClick={e => e.stopPropagation()}
             >
@@ -176,8 +177,8 @@ const CourtModal: React.FC<CourtModalProps> = ({
                     Drag player chips to swap their court positions.
                 </p>
                 <DndContext sensors={sensors} onDragEnd={handleDragEnd} autoScroll={false}>
-                    <div style={{ position: 'relative', width: 400, height: 320 }}>
-                        <CourtSvg width={400} dots={[]} />
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '200 / 160' }}>
+                        <CourtSvg width="100%" dots={[]} />
                         {POSITION_ORDER.map(pos => (
                             <PositionSlot
                                 key={pos}
