@@ -6,11 +6,13 @@ import PlayerManagement from './components/PlayerManagement';
 import Settings from './components/Settings';
 import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
-import { Player } from './interfaces';
+import { Player, Rota, Position, PositionRota, PeriodPositions } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
 import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet } from './sheetsApi';
+import { buildDefaultPositions } from './positionLogic';
 
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
+const POSITIONS_STORAGE_KEY = 'basketball-rota-positions';
 
 const FALLBACK_PLAYER_DATA: Player[] = [
     { id: 1, name: 'Alex', periodsPlayed: 0, lastPlayedPeriod: -1, isPresent: true },
@@ -41,6 +43,23 @@ const loadSavedData = (): Player[] => {
         console.error('Error loading data from local storage:', error);
     }
     return FALLBACK_PLAYER_DATA;
+};
+
+// Fingerprint captures which players are on court each period.
+// If it matches the current rota, saved positions are still valid.
+const makeRotaFingerprint = (rota: Rota): string =>
+    rota.map(period => period.map(p => p.id).join(',')).join('|');
+
+const loadSavedPositions = (rotaFingerprint: string): PositionRota | null => {
+    try {
+        const saved = localStorage.getItem(POSITIONS_STORAGE_KEY);
+        if (!saved) return null;
+        const { fingerprint, positions } = JSON.parse(saved) as { fingerprint: string; positions: PositionRota };
+        if (fingerprint === rotaFingerprint) return positions;
+    } catch {
+        // ignore
+    }
+    return null;
 };
 
 function App() {
@@ -102,6 +121,18 @@ function App() {
         ));
     };
 
+    const handleUpdatePreferredPosition = (id: number, position: Position | undefined) => {
+        setPlayers(prev => prev.map(p =>
+            p.id === id ? { ...p, preferredPosition: position } : p
+        ));
+    };
+
+    const handleUpdateJerseyNumber = (id: number, number: number | undefined) => {
+        setPlayers(prev => prev.map(p =>
+            p.id === id ? { ...p, jerseyNumber: number } : p
+        ));
+    };
+
     const togglePresence = (id: number) => {
         setPlayers(prevPlayers => prevPlayers.map(p =>
             p.id === id ? { ...p, isPresent: !p.isPresent } : p
@@ -111,6 +142,36 @@ function App() {
     const rota = useMemo(() => {
         return generateRota(players, NUM_PERIODS, NUM_ON_COURT);
     }, [players]);
+
+    const [positionRota, setPositionRota] = useState<PositionRota>(() => {
+        const initialRota = generateRota(loadSavedData(), NUM_PERIODS, NUM_ON_COURT);
+        return loadSavedPositions(makeRotaFingerprint(initialRota)) ?? buildDefaultPositions(initialRota);
+    });
+
+    // Save positions with a rota fingerprint so we can validate them on reload.
+    useEffect(() => {
+        try {
+            localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify({
+                fingerprint: makeRotaFingerprint(rota),
+                positions: positionRota,
+            }));
+        } catch { /* ignore */ }
+    }, [positionRota]); // rota captured from closure — always current at save time
+
+    // Reset positions when the rota changes. Fingerprint check is StrictMode-safe:
+    // it reads localStorage rather than relying on a "skip first render" ref.
+    useEffect(() => {
+        if (loadSavedPositions(makeRotaFingerprint(rota)) !== null) return;
+        setPositionRota(buildDefaultPositions(rota));
+    }, [rota]);
+
+    const handlePositionsChange = (periodIndex: number, newPositions: PeriodPositions) => {
+        setPositionRota(prev => {
+            const next = [...prev];
+            next[periodIndex] = newPositions;
+            return next;
+        });
+    };
 
     const handleSaveMatch = async () => {
         if (rota.length === 0 || !spreadsheetId) return;
@@ -183,6 +244,8 @@ function App() {
                 onAdd={handleAddPlayer}
                 onRemove={handleRemovePlayer}
                 onEditName={handleEditPlayerName}
+                onUpdatePreferredPosition={handleUpdatePreferredPosition}
+                onUpdateJerseyNumber={handleUpdateJerseyNumber}
             />
 
             <hr style={{ margin: '20px 0' }}/>
@@ -195,7 +258,12 @@ function App() {
 
             <hr style={{ margin: '20px 0' }}/>
 
-            <RotaTable rota={rota} allPlayers={players} />
+            <RotaTable
+                rota={rota}
+                allPlayers={players}
+                positionRota={positionRota}
+                onPositionsChange={handlePositionsChange}
+            />
 
             <div style={{ margin: '20px 0' }}>
                 <button

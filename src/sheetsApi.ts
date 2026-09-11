@@ -1,5 +1,5 @@
 // src/sheetsApi.ts
-import { Player } from './interfaces';
+import { Player, Position } from './interfaces';
 
 const CLIENT_ID = '942845479443-lvci36nuggtd2scc7r231fakf4vb3tr7.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -226,7 +226,7 @@ export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): P
         .sort((a, b) => b.cumulativeShortfall - a.cumulativeShortfall);
 };
 
-const PLAYERS_HEADERS = ['id', 'name', 'isPresent'];
+const PLAYERS_HEADERS = ['id', 'name', 'isPresent', 'preferredPosition', 'jerseyNumber'];
 
 export const savePlayers = async (spreadsheetId: string, players: Player[]): Promise<void> => {
     if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
@@ -251,7 +251,7 @@ export const savePlayers = async (spreadsheetId: string, players: Player[]): Pro
 
     const rows = [
         PLAYERS_HEADERS,
-        ...players.map(p => [p.id, p.name, p.isPresent]),
+        ...players.map(p => [p.id, p.name, p.isPresent, p.preferredPosition ?? '', p.jerseyNumber ?? '']),
     ];
 
     const putRes = await fetch(
@@ -266,7 +266,7 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
     try {
         const token = await getAccessToken();
         const res = await fetch(
-            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A:C`,
+            `${SHEETS_BASE}/${spreadsheetId}/values/Players!A:E`,
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
         if (!res.ok) return null;
@@ -274,13 +274,19 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
         const rows: string[][] = data.values ?? [];
         // First row is headers; need at least one data row
         if (rows.length < 2) return null;
-        return rows.slice(1).map(row => ({
-            id: Number(row[0]),
-            name: row[1] ?? '',
-            periodsPlayed: 0,
-            lastPlayedPeriod: -1,
-            isPresent: row[2] === 'TRUE' || row[2] === 'true',
-        }));
+        const VALID_POSITIONS = new Set(['PG', 'LF', 'RF', 'LC', 'RC']);
+        return rows.slice(1).map(row => {
+            const jerseyRaw = Number(row[4]);
+            return {
+                id: Number(row[0]),
+                name: row[1] ?? '',
+                periodsPlayed: 0,
+                lastPlayedPeriod: -1,
+                isPresent: row[2] === 'TRUE' || row[2] === 'true',
+                ...(VALID_POSITIONS.has(row[3]) ? { preferredPosition: row[3] as Position } : {}),
+                ...(row[4] && !Number.isNaN(jerseyRaw) ? { jerseyNumber: jerseyRaw } : {}),
+            };
+        });
     } catch {
         return null;
     }
