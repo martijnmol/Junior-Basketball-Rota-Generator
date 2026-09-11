@@ -30,10 +30,10 @@ const CourtSvg: React.FC<CourtSvgProps> = ({ width, dots = [] }) => {
     return (
         <svg width={width} height={height} viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
             {/* Court surface */}
-            <rect x="2" y="2" width="196" height="156" rx="2" fill="#f5d76e" stroke="#8B4513" strokeWidth="2" />
+            <rect x="2" y="2" width="196" height="156" rx="2" fill="#fef3b0" stroke="#8B4513" strokeWidth="2" />
 
             {/* Paint / Key rectangle */}
-            <rect x="76" y="2" width="48" height="56" fill="#e8c86a" stroke="#8B4513" strokeWidth="1.5" />
+            <rect x="76" y="2" width="48" height="56" fill="#fde88a" stroke="#8B4513" strokeWidth="1.5" />
 
             {/* Backboard */}
             <line x1="88" y1="7" x2="112" y2="7" stroke="#333" strokeWidth="3" />

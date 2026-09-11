@@ -58,9 +58,9 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
             style={{
                 transform: CSS.Translate.toString(transform),
                 position: 'absolute',
-                left: `calc(${coords.x}% - 44px)`,
-                top: `calc(${coords.y}% - 20px)`,
-                width: 88,
+                left: `calc(${coords.x}% - 55px)`,
+                top: `calc(${coords.y}% - 25px)`,
+                width: 110,
                 textAlign: 'center',
                 cursor: isDragging ? 'grabbing' : 'grab',
                 zIndex: isDragging ? 100 : 1,
@@ -73,15 +73,15 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
                     background: isOver ? `${color}22` : isDragging ? `${color}18` : 'white',
                     border: `2px solid ${color}`,
                     borderRadius: 8,
-                    padding: '3px 6px',
-                    fontSize: 12,
+                    padding: '4px 8px',
+                    fontSize: 15,
                     fontWeight: 'bold',
                     opacity: isDragging ? 0.7 : 1,
                     boxShadow: `0 2px 8px ${color}88`,
                     transition: 'background 0.1s, border-color 0.1s',
                 }}
             >
-                <div style={{ fontSize: 9, color: '#666', lineHeight: 1.2 }}>
+                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.2 }}>
                     {POSITION_LABELS[position]}
                 </div>
                 <div style={{ lineHeight: 1.4 }}>{player?.name ?? '?'}</div>

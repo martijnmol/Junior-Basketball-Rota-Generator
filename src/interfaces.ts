@@ -25,11 +25,11 @@ export const POSITION_LABELS: Record<Position, string> = {
 // Percentages (0–100) of the SVG viewBox (200×160). Basket at top-center.
 // Used by CourtSvg (converted to absolute units) and CourtModal (as CSS left/top).
 export const POSITION_COORDS: Record<Position, { x: number; y: number }> = {
-    PG: { x: 50, y: 82 },
-    LF: { x: 15, y: 56 },
-    RF: { x: 85, y: 56 },
-    LC: { x: 38, y: 28 },
-    RC: { x: 62, y: 28 },
+    PG: { x: 50, y: 72 },
+    LF: { x: 15, y: 46 },
+    RF: { x: 85, y: 46 },
+    LC: { x: 38, y: 18 },
+    RC: { x: 62, y: 18 },
 };
 
 export const POSITION_ORDER: Position[] = ['PG', 'LF', 'RF', 'LC', 'RC'];
