@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
     DndContext,
     DragEndEvent,
@@ -112,6 +112,22 @@ const CourtModal: React.FC<CourtModalProps> = ({
         return () => { document.body.style.overflow = prev; };
     }, []);
 
+    // Compute court width so it fits both viewport width and height.
+    // Header (title + hint) is ~80px; court aspect ratio is 200:160 = 1.25.
+    const computeCourtWidth = () => {
+        const fromWidth = window.innerWidth;
+        const fromHeight = Math.floor((window.innerHeight - 80) * (200 / 160));
+        return Math.min(fromWidth, fromHeight);
+    };
+    const [courtWidth, setCourtWidth] = useState(computeCourtWidth);
+    useLayoutEffect(() => {
+        const update = () => setCourtWidth(computeCourtWidth());
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(TouchSensor),
@@ -177,8 +193,8 @@ const CourtModal: React.FC<CourtModalProps> = ({
                     Drag player chips to swap their court positions.
                 </p>
                 <DndContext sensors={sensors} onDragEnd={handleDragEnd} autoScroll={false}>
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '200 / 160' }}>
-                        <CourtSvg width="100%" dots={[]} />
+                    <div style={{ position: 'relative', width: courtWidth, height: Math.round(courtWidth * 0.8), margin: '0 auto' }}>
+                        <CourtSvg width={courtWidth} dots={[]} />
                         {POSITION_ORDER.map(pos => (
                             <PositionSlot
                                 key={pos}
