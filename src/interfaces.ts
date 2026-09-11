@@ -6,6 +6,7 @@ export interface Player {
     periodsPlayed: number;
     lastPlayedPeriod: number;
     isPresent: boolean;
+    preferredPosition?: Position;
 }
 
 export type Rota = Player[][];

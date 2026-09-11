@@ -27,6 +27,46 @@ describe('buildDefaultPositions', () => {
     it('returns empty array for empty rota', () => {
         expect(buildDefaultPositions([])).toEqual([]);
     });
+
+    it('honours a single player preferred position', () => {
+        const rota: Rota = [
+            [
+                { ...makePlayer(1), preferredPosition: 'RC' },
+                makePlayer(2), makePlayer(3), makePlayer(4), makePlayer(5),
+            ],
+        ];
+        const result = buildDefaultPositions(rota);
+        expect(result[0].RC).toBe(1);
+    });
+
+    it('all players get their preferred positions when no conflicts', () => {
+        const rota: Rota = [
+            [
+                { ...makePlayer(1), preferredPosition: 'RC' },
+                { ...makePlayer(2), preferredPosition: 'PG' },
+                { ...makePlayer(3), preferredPosition: 'LF' },
+                { ...makePlayer(4), preferredPosition: 'RF' },
+                { ...makePlayer(5), preferredPosition: 'LC' },
+            ],
+        ];
+        const result = buildDefaultPositions(rota);
+        expect(result[0]).toEqual({ PG: 2, LF: 3, RF: 4, LC: 5, RC: 1 });
+    });
+
+    it('falls back gracefully when two players prefer the same position', () => {
+        const rota: Rota = [
+            [
+                { ...makePlayer(1), preferredPosition: 'PG' },
+                { ...makePlayer(2), preferredPosition: 'PG' },
+                makePlayer(3), makePlayer(4), makePlayer(5),
+            ],
+        ];
+        const result = buildDefaultPositions(rota);
+        // First player wins the preferred slot; all 5 positions filled exactly once
+        expect(result[0].PG).toBe(1);
+        const assigned = Object.values(result[0]);
+        expect(assigned.sort()).toEqual([1, 2, 3, 4, 5].sort());
+    });
 });
 
 describe('swapPositions', () => {

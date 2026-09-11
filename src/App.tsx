@@ -6,7 +6,7 @@ import PlayerManagement from './components/PlayerManagement';
 import Settings from './components/Settings';
 import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
-import { Player, Rota, PositionRota, PeriodPositions } from './interfaces';
+import { Player, Rota, Position, PositionRota, PeriodPositions } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
 import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet } from './sheetsApi';
 import { buildDefaultPositions } from './positionLogic';
@@ -121,6 +121,12 @@ function App() {
         ));
     };
 
+    const handleUpdatePreferredPosition = (id: number, position: Position | undefined) => {
+        setPlayers(prev => prev.map(p =>
+            p.id === id ? { ...p, preferredPosition: position } : p
+        ));
+    };
+
     const togglePresence = (id: number) => {
         setPlayers(prevPlayers => prevPlayers.map(p =>
             p.id === id ? { ...p, isPresent: !p.isPresent } : p
@@ -232,6 +238,7 @@ function App() {
                 onAdd={handleAddPlayer}
                 onRemove={handleRemovePlayer}
                 onEditName={handleEditPlayerName}
+                onUpdatePreferredPosition={handleUpdatePreferredPosition}
             />
 
             <hr style={{ margin: '20px 0' }}/>

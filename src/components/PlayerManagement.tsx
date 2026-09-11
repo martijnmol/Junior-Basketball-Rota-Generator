@@ -1,15 +1,16 @@
 // src/components/PlayerManagement.tsx
 import React, { useState } from 'react';
-import { Player } from '../interfaces';
+import { Player, Position, POSITION_ORDER, POSITION_LABELS, POSITION_COLORS } from '../interfaces';
 
 interface PlayerManagementProps {
   players: Player[];
   onAdd: (name: string) => void;
   onRemove: (id: number) => void;
   onEditName: (id: number, newName: string) => void;
+  onUpdatePreferredPosition: (id: number, position: Position | undefined) => void;
 }
 
-const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onRemove, onEditName }) => {
+const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onRemove, onEditName, onUpdatePreferredPosition }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
@@ -92,20 +93,40 @@ const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onR
                     </button>
                   </div>
                 ) : (
-                  <span style={{ flexGrow: 1 }}>{player.name} (ID: {player.id})</span>
+                  <span style={{ flexGrow: 1 }}>{player.name}</span>
                 )}
 
-                <div style={{ display: 'flex', gap: '5px' }}>
+                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <select
+                    value={player.preferredPosition ?? ''}
+                    onChange={e => onUpdatePreferredPosition(player.id, (e.target.value as Position) || undefined)}
+                    style={{
+                      padding: '4px 6px',
+                      borderRadius: '3px',
+                      border: `2px solid ${player.preferredPosition ? POSITION_COLORS[player.preferredPosition] : '#ccc'}`,
+                      fontSize: 12,
+                      color: player.preferredPosition ? POSITION_COLORS[player.preferredPosition] : '#888',
+                      fontWeight: 'bold',
+                      background: 'white',
+                      cursor: 'pointer',
+                    }}
+                    title="Preferred position"
+                  >
+                    <option value="">No pref</option>
+                    {POSITION_ORDER.map(pos => (
+                      <option key={pos} value={pos}>{pos} — {POSITION_LABELS[pos]}</option>
+                    ))}
+                  </select>
                   {editingId !== player.id && (
-                    <button 
-                      onClick={() => startEdit(player)} 
+                    <button
+                      onClick={() => startEdit(player)}
                       style={{ backgroundColor: '#ff9800', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
                     >
                       ✏️ Edit
                     </button>
                   )}
-                  <button 
-                    onClick={() => onRemove(player.id)} 
+                  <button
+                    onClick={() => onRemove(player.id)}
                     style={{ backgroundColor: '#f44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
                   >
                     🗑️ Remove

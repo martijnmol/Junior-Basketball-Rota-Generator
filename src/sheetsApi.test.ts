@@ -51,10 +51,10 @@ describe('savePlayers', () => {
     expect(putCall[1].method).toBe('PUT');
     const body = JSON.parse(putCall[1].body);
     // First row is headers
-    expect(body.values[0]).toEqual(['id', 'name', 'isPresent']);
+    expect(body.values[0]).toEqual(['id', 'name', 'isPresent', 'preferredPosition']);
     // Subsequent rows are player data (periodsPlayed/lastPlayedPeriod are runtime-only, not stored)
-    expect(body.values[1]).toEqual([1, 'Alex', true]);
-    expect(body.values[2]).toEqual([2, 'Ben', false]);
+    expect(body.values[1]).toEqual([1, 'Alex', true, '']);
+    expect(body.values[2]).toEqual([2, 'Ben', false, '']);
   });
 
   it('skips tab creation if Players tab already exists', async () => {
@@ -105,7 +105,7 @@ describe('loadPlayersFromSheet', () => {
 
     const result = await loadPlayersFromSheet('sheet-id-123');
     expect(result).toEqual(PLAYERS_FOR_LOAD);
-    expect(fetchMock.mock.calls[0][0]).toContain('Players!A:C');
+    expect(fetchMock.mock.calls[0][0]).toContain('Players!A:D');
   });
 
   it('returns null when the Players tab is empty (no values key)', async () => {
