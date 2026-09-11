@@ -1,7 +1,11 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
     DndContext,
     DragEndEvent,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
     useDroppable,
     useDraggable,
 } from '@dnd-kit/core';
@@ -54,13 +58,14 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
             style={{
                 transform: CSS.Translate.toString(transform),
                 position: 'absolute',
-                left: `calc(${coords.x}% - 44px)`,
-                top: `calc(${coords.y}% - 20px)`,
-                width: 88,
+                left: `calc(${coords.x}% - 55px)`,
+                top: `calc(${coords.y}% - 25px)`,
+                width: 110,
                 textAlign: 'center',
                 cursor: isDragging ? 'grabbing' : 'grab',
                 zIndex: isDragging ? 100 : 1,
                 userSelect: 'none',
+                touchAction: 'none',
             }}
         >
             <div
@@ -68,15 +73,15 @@ const PositionSlot: React.FC<PositionSlotProps> = ({ position, playerId, players
                     background: isOver ? `${color}22` : isDragging ? `${color}18` : 'white',
                     border: `2px solid ${color}`,
                     borderRadius: 8,
-                    padding: '3px 6px',
-                    fontSize: 12,
+                    padding: '4px 8px',
+                    fontSize: 15,
                     fontWeight: 'bold',
                     opacity: isDragging ? 0.7 : 1,
                     boxShadow: `0 2px 8px ${color}88`,
                     transition: 'background 0.1s, border-color 0.1s',
                 }}
             >
-                <div style={{ fontSize: 9, color: '#666', lineHeight: 1.2 }}>
+                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.2 }}>
                     {POSITION_LABELS[position]}
                 </div>
                 <div style={{ lineHeight: 1.4 }}>{player?.name ?? '?'}</div>
@@ -100,6 +105,18 @@ const CourtModal: React.FC<CourtModalProps> = ({
     onPositionsChange,
     onClose,
 }) => {
+    // Lock body scroll so the page doesn't steal touch events during drag.
+    useEffect(() => {
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev; };
+    }, []);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(TouchSensor),
+    );
+
     const handleDragEnd = useCallback(
         (event: DragEndEvent) => {
             const { active, over } = event;
@@ -126,9 +143,10 @@ const CourtModal: React.FC<CourtModalProps> = ({
                 style={{
                     background: 'white',
                     borderRadius: 12,
-                    padding: 20,
+                    padding: '12px 0',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    maxWidth: '90vw',
+                    width: '100%',
+                    boxSizing: 'border-box' as const,
                 }}
                 onClick={e => e.stopPropagation()}
             >
@@ -158,9 +176,9 @@ const CourtModal: React.FC<CourtModalProps> = ({
                 <p style={{ margin: '0 0 12px', fontSize: 13, color: '#666' }}>
                     Drag player chips to swap their court positions.
                 </p>
-                <DndContext onDragEnd={handleDragEnd}>
-                    <div style={{ position: 'relative', width: 400, height: 320 }}>
-                        <CourtSvg width={400} dots={[]} />
+                <DndContext sensors={sensors} onDragEnd={handleDragEnd} autoScroll={false}>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '200 / 160' }}>
+                        <CourtSvg width="100%" dots={[]} />
                         {POSITION_ORDER.map(pos => (
                             <PositionSlot
                                 key={pos}
