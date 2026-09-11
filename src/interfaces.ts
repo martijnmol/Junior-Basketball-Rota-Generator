@@ -7,6 +7,7 @@ export interface Player {
     lastPlayedPeriod: number;
     isPresent: boolean;
     preferredPosition?: Position;
+    jerseyNumber?: number;
 }
 
 export type Rota = Player[][];

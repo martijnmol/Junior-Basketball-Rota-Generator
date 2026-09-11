@@ -127,6 +127,12 @@ function App() {
         ));
     };
 
+    const handleUpdateJerseyNumber = (id: number, number: number | undefined) => {
+        setPlayers(prev => prev.map(p =>
+            p.id === id ? { ...p, jerseyNumber: number } : p
+        ));
+    };
+
     const togglePresence = (id: number) => {
         setPlayers(prevPlayers => prevPlayers.map(p =>
             p.id === id ? { ...p, isPresent: !p.isPresent } : p
@@ -239,6 +245,7 @@ function App() {
                 onRemove={handleRemovePlayer}
                 onEditName={handleEditPlayerName}
                 onUpdatePreferredPosition={handleUpdatePreferredPosition}
+                onUpdateJerseyNumber={handleUpdateJerseyNumber}
             />
 
             <hr style={{ margin: '20px 0' }}/>

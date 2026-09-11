@@ -8,9 +8,10 @@ interface PlayerManagementProps {
   onRemove: (id: number) => void;
   onEditName: (id: number, newName: string) => void;
   onUpdatePreferredPosition: (id: number, position: Position | undefined) => void;
+  onUpdateJerseyNumber: (id: number, number: number | undefined) => void;
 }
 
-const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onRemove, onEditName, onUpdatePreferredPosition }) => {
+const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onRemove, onEditName, onUpdatePreferredPosition, onUpdateJerseyNumber }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
@@ -97,6 +98,19 @@ const PlayerManagement: React.FC<PlayerManagementProps> = ({ players, onAdd, onR
                 )}
 
                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={player.jerseyNumber ?? ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      onUpdateJerseyNumber(player.id, val === '' ? undefined : Number(val));
+                    }}
+                    placeholder="#"
+                    title="Jersey number"
+                    style={{ width: 44, padding: '4px 6px', borderRadius: '3px', border: '1px solid #ccc', fontSize: 12, textAlign: 'center' }}
+                  />
                   <select
                     value={player.preferredPosition ?? ''}
                     onChange={e => onUpdatePreferredPosition(player.id, (e.target.value as Position) || undefined)}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Rota, Player, PeriodPositions, PositionRota, POSITION_COLORS } from '../interfaces';
+import { useRotaPreferences } from '../rotaPreferences';
 import { getPlayerPosition } from '../positionLogic';
 import CourtSvg from './CourtSvg';
 import CourtModal from './CourtModal';
@@ -11,6 +12,24 @@ interface RotaTableProps {
     onPositionsChange: (periodIndex: number, positions: PeriodPositions) => void;
 }
 
+const ToggleButton: React.FC<{ on: boolean; onToggle: () => void; label: string }> = ({ on, onToggle, label }) => (
+    <button
+        onClick={onToggle}
+        style={{
+            padding: '4px 10px',
+            fontSize: 12,
+            borderRadius: 4,
+            border: `1px solid ${on ? '#3f51b5' : '#bbb'}`,
+            background: on ? '#3f51b5' : '#f5f5f5',
+            color: on ? 'white' : '#555',
+            cursor: 'pointer',
+            fontWeight: on ? 'bold' : 'normal',
+        }}
+    >
+        {label}
+    </button>
+);
+
 const RotaTable: React.FC<RotaTableProps> = ({
     rota,
     allPlayers,
@@ -18,6 +37,8 @@ const RotaTable: React.FC<RotaTableProps> = ({
     onPositionsChange,
 }) => {
     const [modalPeriod, setModalPeriod] = useState<number | null>(null);
+    const { prefs, updatePref } = useRotaPreferences();
+    const { showJerseys, showPositions } = prefs;
 
     const availablePlayers = allPlayers.filter(p => p.isPresent);
     const numPeriods = 8;
@@ -32,7 +53,11 @@ const RotaTable: React.FC<RotaTableProps> = ({
 
     return (
         <div>
-            <h2>🗓️ Game Rota (Transposed View)</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>🗓️ Game Rota (Transposed View)</h2>
+                <ToggleButton on={showJerseys} onToggle={() => updatePref('showJerseys', !showJerseys)} label="# Jerseys" />
+                <ToggleButton on={showPositions} onToggle={() => updatePref('showPositions', !showPositions)} label="🏀 Positions" />
+            </div>
             <div className="rota-container">
                 <table
                     className="rota-table"
@@ -44,7 +69,7 @@ const RotaTable: React.FC<RotaTableProps> = ({
                             {Array.from({ length: numPeriods }, (_, i) => i + 1).map(period => (
                                 <th key={`P${period}`} style={{ padding: '6px 8px' }}>
                                     <div>P{period}</div>
-                                    {positionRota[period - 1] && (
+                                    {showPositions && positionRota[period - 1] && (
                                         <button
                                             onClick={() => setModalPeriod(period)}
                                             style={{
@@ -70,6 +95,10 @@ const RotaTable: React.FC<RotaTableProps> = ({
                     <tbody>
                         {availablePlayers.map(player => {
                             let totalPlayed = 0;
+                            const nameLabel = showJerseys && player.jerseyNumber != null
+                                ? `${player.name} (#${player.jerseyNumber})`
+                                : player.name;
+
                             return (
                                 <tr key={player.id}>
                                     <td
@@ -77,9 +106,10 @@ const RotaTable: React.FC<RotaTableProps> = ({
                                             border: '1px solid #ddd',
                                             padding: '8px',
                                             fontWeight: 'bold',
+                                            whiteSpace: 'nowrap',
                                         }}
                                     >
-                                        {player.name}
+                                        {nameLabel}
                                     </td>
                                     {rota.map((periodPlayers, periodIndex) => {
                                         const isPlaying = periodPlayers.some(p => p.id === player.id);
@@ -87,7 +117,7 @@ const RotaTable: React.FC<RotaTableProps> = ({
 
                                         const periodPositions = positionRota[periodIndex];
                                         const position =
-                                            isPlaying && periodPositions
+                                            showPositions && isPlaying && periodPositions
                                                 ? getPlayerPosition(periodPositions, player.id)
                                                 : undefined;
 
