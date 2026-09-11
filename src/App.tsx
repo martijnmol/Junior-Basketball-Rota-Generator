@@ -6,9 +6,10 @@ import PlayerManagement from './components/PlayerManagement';
 import Settings from './components/Settings';
 import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
-import { Player } from './interfaces';
+import { Player, PositionRota, PeriodPositions } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
 import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet } from './sheetsApi';
+import { buildDefaultPositions } from './positionLogic';
 
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
 
@@ -112,6 +113,22 @@ function App() {
         return generateRota(players, NUM_PERIODS, NUM_ON_COURT);
     }, [players]);
 
+    const [positionRota, setPositionRota] = useState<PositionRota>(() =>
+        buildDefaultPositions(generateRota(FALLBACK_PLAYER_DATA, NUM_PERIODS, NUM_ON_COURT))
+    );
+
+    useEffect(() => {
+        setPositionRota(buildDefaultPositions(rota));
+    }, [rota]);
+
+    const handlePositionsChange = (periodIndex: number, newPositions: PeriodPositions) => {
+        setPositionRota(prev => {
+            const next = [...prev];
+            next[periodIndex] = newPositions;
+            return next;
+        });
+    };
+
     const handleSaveMatch = async () => {
         if (rota.length === 0 || !spreadsheetId) return;
 
@@ -195,7 +212,12 @@ function App() {
 
             <hr style={{ margin: '20px 0' }}/>
 
-            <RotaTable rota={rota} allPlayers={players} />
+            <RotaTable
+                rota={rota}
+                allPlayers={players}
+                positionRota={positionRota}
+                onPositionsChange={handlePositionsChange}
+            />
 
             <div style={{ margin: '20px 0' }}>
                 <button
