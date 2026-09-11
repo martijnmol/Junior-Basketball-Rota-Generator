@@ -68,25 +68,7 @@ const RotaTable: React.FC<RotaTableProps> = ({
                             <th style={{ padding: '8px' }}>Player</th>
                             {Array.from({ length: numPeriods }, (_, i) => i + 1).map(period => (
                                 <th key={`P${period}`} style={{ padding: '6px 8px' }}>
-                                    <div>P{period}</div>
-                                    {showPositions && positionRota[period - 1] && (
-                                        <button
-                                            onClick={() => setModalPeriod(period)}
-                                            style={{
-                                                marginTop: 4,
-                                                padding: '2px 6px',
-                                                fontSize: 13,
-                                                background: '#3f51b5',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: 4,
-                                                cursor: 'pointer',
-                                            }}
-                                            title={`View court formation for Period ${period}`}
-                                        >
-                                            🏟️
-                                        </button>
-                                    )}
+                                    P{period}
                                 </th>
                             ))}
                             <th style={{ padding: '8px', backgroundColor: '#e0e0e0' }}>Total</th>
@@ -133,8 +115,9 @@ const RotaTable: React.FC<RotaTableProps> = ({
                                             >
                                                 {isPlaying && position ? (
                                                     <div
-                                                        title={`${position} — click 🏟️ to edit`}
-                                                        style={{ display: 'inline-block' }}
+                                                        onClick={() => setModalPeriod(periodIndex + 1)}
+                                                        title={`${position} — click to edit formation`}
+                                                        style={{ display: 'inline-block', cursor: 'pointer' }}
                                                     >
                                                         <CourtSvg
                                                             width={56}
