@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/Junior-Basketball-Rota-Generator/static/css/main.31d6cfe0.css",
-    "main.js": "/Junior-Basketball-Rota-Generator/static/js/main.cc54813a.js",
+    "main.js": "/Junior-Basketball-Rota-Generator/static/js/main.b7f71652.js",
     "static/js/453.be8cc501.chunk.js": "/Junior-Basketball-Rota-Generator/static/js/453.be8cc501.chunk.js",
     "index.html": "/Junior-Basketball-Rota-Generator/index.html",
-    "main.cc54813a.js.map": "/Junior-Basketball-Rota-Generator/static/js/main.cc54813a.js.map",
+    "main.b7f71652.js.map": "/Junior-Basketball-Rota-Generator/static/js/main.b7f71652.js.map",
     "453.be8cc501.chunk.js.map": "/Junior-Basketball-Rota-Generator/static/js/453.be8cc501.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.31d6cfe0.css",
-    "static/js/main.cc54813a.js"
+    "static/js/main.b7f71652.js"
   ]
 }
