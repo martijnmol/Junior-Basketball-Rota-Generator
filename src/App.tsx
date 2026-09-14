@@ -8,7 +8,7 @@ import StatsTable from './components/StatsTable';
 import { generateRota } from './rotaLogic';
 import { Player, Rota, Position, PositionRota, PeriodPositions } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
-import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet } from './sheetsApi';
+import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet, saveLineup, loadLineupFromSheet } from './sheetsApi';
 import { buildDefaultPositions } from './positionLogic';
 
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
@@ -68,6 +68,8 @@ function App() {
     const [statsRefreshKey, setStatsRefreshKey] = useState(0);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [lineupStatus, setLineupStatus] = useState<'idle' | 'saving' | 'loading' | 'saved' | 'loaded' | 'error'>('idle');
+    const [lineupError, setLineupError] = useState<string | null>(null);
     const initialLoadDone = useRef(false);
     const spreadsheetIdRef = useRef(spreadsheetId);
 
@@ -219,6 +221,42 @@ function App() {
         }
     };
 
+    const handleSaveLineup = async () => {
+        if (!spreadsheetId) return;
+        setLineupStatus('saving');
+        setLineupError(null);
+        try {
+            await saveLineup(spreadsheetId, players, positionRota);
+            setLineupStatus('saved');
+            setTimeout(() => setLineupStatus('idle'), 3000);
+        } catch (e) {
+            setLineupStatus('error');
+            setLineupError(e instanceof Error ? e.message : 'Unknown error');
+        }
+    };
+
+    const handleLoadLineup = async () => {
+        if (!spreadsheetId) return;
+        setLineupStatus('loading');
+        setLineupError(null);
+        try {
+            const loaded = await loadLineupFromSheet(spreadsheetId, players);
+            if (!loaded) throw new Error('No lineup found in the sheet.');
+            setPositionRota(loaded);
+            try {
+                localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify({
+                    fingerprint: makeRotaFingerprint(rota),
+                    positions: loaded,
+                }));
+            } catch { /* ignore */ }
+            setLineupStatus('loaded');
+            setTimeout(() => setLineupStatus('idle'), 3000);
+        } catch (e) {
+            setLineupStatus('error');
+            setLineupError(e instanceof Error ? e.message : 'Unknown error');
+        }
+    };
+
     const handleIdChange = (id: string) => {
         setSpreadsheetId(id);
         setSpreadsheetIdState(id || null);
@@ -265,6 +303,47 @@ function App() {
                 onPositionsChange={handlePositionsChange}
             />
 
+            <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                    onClick={handleSaveLineup}
+                    disabled={!spreadsheetId || lineupStatus === 'saving' || lineupStatus === 'loading'}
+                    style={{
+                        padding: '8px 18px',
+                        backgroundColor: !spreadsheetId ? '#aaa' : '#3f51b5',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: !spreadsheetId ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                    }}
+                >
+                    {lineupStatus === 'saving' ? 'Saving...' : '💾 Save Lineup'}
+                </button>
+                <button
+                    onClick={handleLoadLineup}
+                    disabled={!spreadsheetId || lineupStatus === 'saving' || lineupStatus === 'loading'}
+                    style={{
+                        padding: '8px 18px',
+                        backgroundColor: !spreadsheetId ? '#aaa' : '#1976d2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: !spreadsheetId ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                    }}
+                >
+                    {lineupStatus === 'loading' ? 'Loading...' : '📂 Load Lineup'}
+                </button>
+                {lineupStatus === 'saved' && <span style={{ color: 'green', fontWeight: 'bold' }}>✓ Lineup saved!</span>}
+                {lineupStatus === 'loaded' && <span style={{ color: 'green', fontWeight: 'bold' }}>✓ Lineup loaded!</span>}
+                {lineupStatus === 'error' && <span style={{ color: 'red' }}>⚠️ {lineupError}</span>}
+                {!spreadsheetId && <span style={{ color: '#888', fontSize: '13px' }}>Configure Spreadsheet ID in Settings above to enable.</span>}
+            </div>
+
+            <hr style={{ margin: '20px 0' }}/>
+
             <div style={{ margin: '20px 0' }}>
                 <button
                     onClick={handleSaveMatch}
@@ -280,7 +359,7 @@ function App() {
                         fontSize: '15px',
                     }}
                 >
-                    {saveStatus === 'saving' ? 'Saving...' : '💾 Save Match'}
+                    {saveStatus === 'saving' ? 'Saving...' : '💾 Save Match to Statistics'}
                 </button>
                 {saveStatus === 'success' && (
                     <span style={{ marginLeft: '12px', color: 'green', fontWeight: 'bold' }}>✓ Match saved!</span>
@@ -292,8 +371,6 @@ function App() {
                     <span style={{ marginLeft: '12px', color: '#888', fontSize: '13px' }}>Configure Spreadsheet ID in Settings above to enable saving.</span>
                 )}
             </div>
-
-            <hr style={{ margin: '20px 0' }}/>
 
             <StatsTable spreadsheetId={spreadsheetId} refreshKey={statsRefreshKey} />
         </div>

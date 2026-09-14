@@ -1,5 +1,5 @@
 // src/sheetsApi.ts
-import { Player, Position } from './interfaces';
+import { Player, Position, PositionRota, PeriodPositions, POSITION_ORDER } from './interfaces';
 
 const CLIENT_ID = '942845479443-lvci36nuggtd2scc7r231fakf4vb3tr7.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -287,6 +287,94 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
                 ...(row[4] && !Number.isNaN(jerseyRaw) ? { jerseyNumber: jerseyRaw } : {}),
             };
         });
+    } catch {
+        return null;
+    }
+};
+
+const LINEUP_HEADERS = ['Player', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'];
+
+export const saveLineup = async (
+    spreadsheetId: string,
+    players: Player[],
+    positionRota: PositionRota,
+): Promise<void> => {
+    if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
+    const token = await getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    const metaRes = await fetch(
+        `${SHEETS_BASE}/${spreadsheetId}?fields=sheets.properties.title`,
+        { headers }
+    );
+    if (!metaRes.ok) throw new Error(`Could not read spreadsheet: ${metaRes.status}`);
+    const meta = await metaRes.json();
+    const existingTitles: string[] = (meta.sheets ?? []).map((s: any) => s.properties.title as string);
+
+    if (!existingTitles.includes('Lineup')) {
+        const batchRes = await fetch(
+            `${SHEETS_BASE}/${spreadsheetId}:batchUpdate`,
+            { method: 'POST', headers, body: JSON.stringify({ requests: [{ addSheet: { properties: { title: 'Lineup' } } }] }) }
+        );
+        if (!batchRes.ok) throw new Error(`Failed to create Lineup tab: ${batchRes.status}`);
+    }
+
+    // Clear existing data first so removed players don't linger.
+    await fetch(`${SHEETS_BASE}/${spreadsheetId}/values/Lineup:clear`, { method: 'POST', headers });
+
+    const presentPlayers = players.filter(p => p.isPresent);
+    const rows: (string | number)[][] = [
+        LINEUP_HEADERS,
+        ...presentPlayers.map(player => {
+            const cells: (string | number)[] = [player.name];
+            for (let i = 0; i < 8; i++) {
+                const period = positionRota[i];
+                const pos = period
+                    ? (Object.entries(period) as [Position, number][]).find(([, id]) => id === player.id)?.[0]
+                    : undefined;
+                cells.push(pos ?? '');
+            }
+            return cells;
+        }),
+    ];
+
+    const putRes = await fetch(
+        `${SHEETS_BASE}/${spreadsheetId}/values/Lineup!A1?valueInputOption=RAW`,
+        { method: 'PUT', headers, body: JSON.stringify({ values: rows }) }
+    );
+    if (!putRes.ok) throw new Error(`Failed to save lineup: ${putRes.status}`);
+};
+
+export const loadLineupFromSheet = async (
+    spreadsheetId: string,
+    players: Player[],
+): Promise<PositionRota | null> => {
+    if (!spreadsheetId) return null;
+    try {
+        const token = await getAccessToken();
+        const res = await fetch(
+            `${SHEETS_BASE}/${spreadsheetId}/values/Lineup!A:I`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const rows: string[][] = data.values ?? [];
+        if (rows.length < 2) return null;
+
+        const playerNameToId = new Map(players.map(p => [p.name, p.id]));
+        const result: PositionRota = Array.from({ length: 8 }, () => ({} as PeriodPositions));
+
+        for (const row of rows.slice(1)) {
+            const playerId = playerNameToId.get(row[0]);
+            if (playerId === undefined) continue;
+            for (let i = 0; i < 8; i++) {
+                const pos = (row[i + 1] ?? '').trim() as Position;
+                if (POSITION_ORDER.includes(pos)) {
+                    result[i][pos] = playerId;
+                }
+            }
+        }
+        return result;
     } catch {
         return null;
     }
