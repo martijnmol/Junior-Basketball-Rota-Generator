@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Rota, Player, PeriodPositions, PositionRota, POSITION_COLORS } from '../interfaces';
-import { useRotaPreferences } from '../rotaPreferences';
+import { useRotaPreferences, CellDisplayMode } from '../rotaPreferences';
 import { getPlayerPosition } from '../positionLogic';
 import CourtSvg from './CourtSvg';
 import CourtModal from './CourtModal';
@@ -38,7 +38,9 @@ const RotaTable: React.FC<RotaTableProps> = ({
 }) => {
     const [modalPeriod, setModalPeriod] = useState<number | null>(null);
     const { prefs, updatePref } = useRotaPreferences();
-    const { showJerseys, showPositions } = prefs;
+    const { showJerseys, cellDisplay } = prefs;
+    const CELL_MODES: CellDisplayMode[] = ['ball', 'position', 'name'];
+    const CELL_LABELS: Record<CellDisplayMode, string> = { ball: '🏀 Ball', position: '📍 Position', name: '👤 Name' };
 
     const availablePlayers = allPlayers.filter(p => p.isPresent);
     const numPeriods = 8;
@@ -56,7 +58,21 @@ const RotaTable: React.FC<RotaTableProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <h2 style={{ margin: 0 }}>🗓️ Game Rota (Transposed View)</h2>
                 <ToggleButton on={showJerseys} onToggle={() => updatePref('showJerseys', !showJerseys)} label="# Jerseys" />
-                <ToggleButton on={showPositions} onToggle={() => updatePref('showPositions', !showPositions)} label="🏀 Positions" />
+                <button
+                    onClick={() => updatePref('cellDisplay', CELL_MODES[(CELL_MODES.indexOf(cellDisplay) + 1) % CELL_MODES.length])}
+                    style={{
+                        padding: '4px 10px',
+                        fontSize: 12,
+                        borderRadius: 4,
+                        border: '1px solid #3f51b5',
+                        background: '#3f51b5',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                    }}
+                >
+                    {CELL_LABELS[cellDisplay]}
+                </button>
             </div>
             <div className="rota-container">
                 <table
@@ -99,7 +115,7 @@ const RotaTable: React.FC<RotaTableProps> = ({
 
                                         const periodPositions = positionRota[periodIndex];
                                         const position =
-                                            showPositions && isPlaying && periodPositions
+                                            cellDisplay === 'position' && isPlaying && periodPositions
                                                 ? getPlayerPosition(periodPositions, player.id)
                                                 : undefined;
 
@@ -113,7 +129,9 @@ const RotaTable: React.FC<RotaTableProps> = ({
                                                     verticalAlign: 'middle',
                                                 }}
                                             >
-                                                {isPlaying && position ? (
+                                                {!isPlaying ? '—' : cellDisplay === 'name' ? (
+                                                    <span style={{ fontSize: 11 }}>{player.name}</span>
+                                                ) : position ? (
                                                     <div
                                                         onClick={() => setModalPeriod(periodIndex + 1)}
                                                         title={`${position} — click to edit formation`}
@@ -124,10 +142,8 @@ const RotaTable: React.FC<RotaTableProps> = ({
                                                             dots={[{ position, color: POSITION_COLORS[position] }]}
                                                         />
                                                     </div>
-                                                ) : isPlaying ? (
-                                                    '🏀'
                                                 ) : (
-                                                    '—'
+                                                    '🏀'
                                                 )}
                                             </td>
                                         );

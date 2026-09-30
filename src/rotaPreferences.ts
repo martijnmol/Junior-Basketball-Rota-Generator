@@ -1,14 +1,15 @@
 import { useState } from 'react';
 
+export type CellDisplayMode = 'ball' | 'position' | 'name';
+
 export interface RotaPreferences {
     showJerseys: boolean;
-    showPositions: boolean;
-    // Add future toggles here — supply a default in DEFAULTS below.
+    cellDisplay: CellDisplayMode;
 }
 
 const DEFAULTS: RotaPreferences = {
     showJerseys: false,
-    showPositions: true,
+    cellDisplay: 'ball',
 };
 
 const STORAGE_KEY = 'basketball-rota-display-prefs';
