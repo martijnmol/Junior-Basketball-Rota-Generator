@@ -158,7 +158,7 @@ function App() {
                 positions: positionRota,
             }));
         } catch { /* ignore */ }
-    }, [positionRota]); // rota captured from closure — always current at save time
+    }, [positionRota, rota]); // rota captured from closure — always current at save time
 
     // Reset positions when the rota changes. Fingerprint check is StrictMode-safe:
     // it reads localStorage rather than relying on a "skip first render" ref.
