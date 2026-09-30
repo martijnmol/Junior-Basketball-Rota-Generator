@@ -73,6 +73,7 @@ function App() {
     const [lineupError, setLineupError] = useState<string | null>(null);
     const initialLoadDone = useRef(false);
     const spreadsheetIdRef = useRef(spreadsheetId);
+    const forcePositionRebuildRef = useRef(false);
 
     useEffect(() => {
         spreadsheetIdRef.current = spreadsheetId;
@@ -100,6 +101,7 @@ function App() {
         const result = Array.from(players);
         const [removed] = result.splice(startIndex, 1);
         result.splice(endIndex, 0, removed);
+        forcePositionRebuildRef.current = true;
         setPlayers(result);
     };
 
@@ -111,10 +113,12 @@ function App() {
             lastPlayedPeriod: -1,
             isPresent: true,
         };
+        forcePositionRebuildRef.current = true;
         setPlayers(prevPlayers => [...prevPlayers, newPlayer]);
     };
 
     const handleRemovePlayer = (id: number) => {
+        forcePositionRebuildRef.current = true;
         setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== id));
     };
 
@@ -125,6 +129,7 @@ function App() {
     };
 
     const handleUpdatePositionWeights = (id: number, weights: Partial<Record<Position, number>>) => {
+        forcePositionRebuildRef.current = true;
         setPlayers(prev => prev.map(p =>
             p.id === id ? { ...p, positionWeights: weights } : p
         ));
@@ -132,12 +137,8 @@ function App() {
 
     const handleAutoLineup = () => {
         const newOrder = findOptimalPlayerOrder(players, NUM_PERIODS, NUM_ON_COURT);
-        const newRota = generateRota(newOrder, NUM_PERIODS, NUM_ON_COURT);
-        const optimalPositions = buildOptimalPositions(newRota);
-        // Clear cached positions so the rota-change effect doesn't override with stale data
-        try { localStorage.removeItem(POSITIONS_STORAGE_KEY); } catch { /* ignore */ }
+        forcePositionRebuildRef.current = true;
         setPlayers(newOrder);
-        setPositionRota(optimalPositions);
     };
 
     const handleUpdateJerseyNumber = (id: number, number: number | undefined) => {
@@ -147,6 +148,7 @@ function App() {
     };
 
     const togglePresence = (id: number) => {
+        forcePositionRebuildRef.current = true;
         setPlayers(prevPlayers => prevPlayers.map(p =>
             p.id === id ? { ...p, isPresent: !p.isPresent } : p
         ));
@@ -171,10 +173,10 @@ function App() {
         } catch { /* ignore */ }
     }, [positionRota, rota]); // rota captured from closure — always current at save time
 
-    // Reset positions when the rota changes. Fingerprint check is StrictMode-safe:
-    // it reads localStorage rather than relying on a "skip first render" ref.
+    // Reset positions when the rota changes, or when a force-rebuild was requested.
     useEffect(() => {
-        if (loadSavedPositions(makeRotaFingerprint(rota)) !== null) return;
+        if (!forcePositionRebuildRef.current && loadSavedPositions(makeRotaFingerprint(rota)) !== null) return;
+        forcePositionRebuildRef.current = false;
         setPositionRota(buildOptimalPositions(rota));
     }, [rota]);
 
