@@ -22,6 +22,7 @@ interface PlayerListProps {
     players: Player[];
     onToggle: (id: number) => void;
     onReorder: (startIndex: number, endIndex: number) => void;
+    onAutoLineup?: () => void;
 }
 
 interface SortableChipProps {
@@ -70,7 +71,7 @@ const SortableChip: React.FC<SortableChipProps> = ({ player, onToggle }) => {
     );
 };
 
-const PlayerList: React.FC<PlayerListProps> = ({ players, onToggle, onReorder }) => {
+const PlayerList: React.FC<PlayerListProps> = ({ players, onToggle, onReorder, onAutoLineup }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const availableCount = players.filter(p => p.isPresent).length;
 
@@ -107,7 +108,27 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onToggle, onReorder })
             {!isCollapsed && (
                 <>
                     <hr style={{ margin: '10px 0' }} />
-                    <p>Drag and drop names to set the preferred team order. Tap names to toggle availability.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <p style={{ margin: 0 }}>Drag and drop names to set the preferred team order. Tap names to toggle availability.</p>
+                        {onAutoLineup && (
+                            <button
+                                onClick={onAutoLineup}
+                                style={{
+                                    padding: '6px 14px',
+                                    backgroundColor: '#7b1fa2',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    fontSize: 13,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                ✨ Auto Lineup
+                            </button>
+                        )}
+                    </div>
 
                     <DndContext
                         sensors={sensors}

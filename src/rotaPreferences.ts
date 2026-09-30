@@ -5,11 +5,13 @@ export type CellDisplayMode = 'ball' | 'position' | 'name';
 export interface RotaPreferences {
     showJerseys: boolean;
     cellDisplay: CellDisplayMode;
+    showScore: boolean;
 }
 
 const DEFAULTS: RotaPreferences = {
     showJerseys: false,
     cellDisplay: 'ball',
+    showScore: false,
 };
 
 const STORAGE_KEY = 'basketball-rota-display-prefs';

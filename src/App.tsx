@@ -9,7 +9,8 @@ import { generateRota } from './rotaLogic';
 import { Player, Rota, Position, PositionRota, PeriodPositions } from './interfaces';
 import { getSpreadsheetId, setSpreadsheetId } from './settingsStorage';
 import { appendMatch, AppendMatchPayload, savePlayers, loadPlayersFromSheet, saveLineup, loadLineupFromSheet } from './sheetsApi';
-import { buildDefaultPositions } from './positionLogic';
+import { buildOptimalPositions } from './positionLogic';
+import { findOptimalPlayerOrder } from './autoLineup';
 
 const LOCAL_STORAGE_KEY = 'basketball-rota-players';
 const POSITIONS_STORAGE_KEY = 'basketball-rota-positions';
@@ -123,10 +124,20 @@ function App() {
         ));
     };
 
-    const handleUpdatePreferredPosition = (id: number, position: Position | undefined) => {
+    const handleUpdatePositionWeights = (id: number, weights: Partial<Record<Position, number>>) => {
         setPlayers(prev => prev.map(p =>
-            p.id === id ? { ...p, preferredPosition: position } : p
+            p.id === id ? { ...p, positionWeights: weights } : p
         ));
+    };
+
+    const handleAutoLineup = () => {
+        const newOrder = findOptimalPlayerOrder(players, NUM_PERIODS, NUM_ON_COURT);
+        const newRota = generateRota(newOrder, NUM_PERIODS, NUM_ON_COURT);
+        const optimalPositions = buildOptimalPositions(newRota);
+        // Clear cached positions so the rota-change effect doesn't override with stale data
+        try { localStorage.removeItem(POSITIONS_STORAGE_KEY); } catch { /* ignore */ }
+        setPlayers(newOrder);
+        setPositionRota(optimalPositions);
     };
 
     const handleUpdateJerseyNumber = (id: number, number: number | undefined) => {
@@ -147,7 +158,7 @@ function App() {
 
     const [positionRota, setPositionRota] = useState<PositionRota>(() => {
         const initialRota = generateRota(loadSavedData(), NUM_PERIODS, NUM_ON_COURT);
-        return loadSavedPositions(makeRotaFingerprint(initialRota)) ?? buildDefaultPositions(initialRota);
+        return loadSavedPositions(makeRotaFingerprint(initialRota)) ?? buildOptimalPositions(initialRota);
     });
 
     // Save positions with a rota fingerprint so we can validate them on reload.
@@ -164,7 +175,7 @@ function App() {
     // it reads localStorage rather than relying on a "skip first render" ref.
     useEffect(() => {
         if (loadSavedPositions(makeRotaFingerprint(rota)) !== null) return;
-        setPositionRota(buildDefaultPositions(rota));
+        setPositionRota(buildOptimalPositions(rota));
     }, [rota]);
 
     const handlePositionsChange = (periodIndex: number, newPositions: PeriodPositions) => {
@@ -282,7 +293,7 @@ function App() {
                 onAdd={handleAddPlayer}
                 onRemove={handleRemovePlayer}
                 onEditName={handleEditPlayerName}
-                onUpdatePreferredPosition={handleUpdatePreferredPosition}
+                onUpdatePositionWeights={handleUpdatePositionWeights}
                 onUpdateJerseyNumber={handleUpdateJerseyNumber}
             />
 
@@ -292,6 +303,7 @@ function App() {
                 players={players}
                 onToggle={togglePresence}
                 onReorder={handleReorderPlayers}
+                onAutoLineup={handleAutoLineup}
             />
 
             <hr style={{ margin: '20px 0' }}/>

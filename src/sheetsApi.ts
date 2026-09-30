@@ -226,7 +226,7 @@ export const fetchStats = async (spreadsheetId: string, signal?: AbortSignal): P
         .sort((a, b) => b.cumulativeShortfall - a.cumulativeShortfall);
 };
 
-const PLAYERS_HEADERS = ['id', 'name', 'isPresent', 'preferredPosition', 'jerseyNumber'];
+const PLAYERS_HEADERS = ['id', 'name', 'isPresent', 'positionWeights', 'jerseyNumber'];
 
 export const savePlayers = async (spreadsheetId: string, players: Player[]): Promise<void> => {
     if (!spreadsheetId) throw new Error('Spreadsheet ID is not configured.');
@@ -251,7 +251,7 @@ export const savePlayers = async (spreadsheetId: string, players: Player[]): Pro
 
     const rows = [
         PLAYERS_HEADERS,
-        ...players.map(p => [p.id, p.name, p.isPresent, p.preferredPosition ?? '', p.jerseyNumber ?? '']),
+        ...players.map(p => [p.id, p.name, p.isPresent, p.positionWeights ? JSON.stringify(p.positionWeights) : '', p.jerseyNumber ?? '']),
     ];
 
     const putRes = await fetch(
@@ -274,7 +274,6 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
         const rows: string[][] = data.values ?? [];
         // First row is headers; need at least one data row
         if (rows.length < 2) return null;
-        const VALID_POSITIONS = new Set(['PG', 'LF', 'RF', 'LC', 'RC']);
         return rows.slice(1).map(row => {
             const jerseyRaw = Number(row[4]);
             return {
@@ -283,7 +282,7 @@ export const loadPlayersFromSheet = async (spreadsheetId: string): Promise<Playe
                 periodsPlayed: 0,
                 lastPlayedPeriod: -1,
                 isPresent: row[2] === 'TRUE' || row[2] === 'true',
-                ...(VALID_POSITIONS.has(row[3]) ? { preferredPosition: row[3] as Position } : {}),
+                ...(row[3] ? (() => { try { return { positionWeights: JSON.parse(row[3]) }; } catch { return {}; } })() : {}),
                 ...(row[4] && !Number.isNaN(jerseyRaw) ? { jerseyNumber: jerseyRaw } : {}),
             };
         });

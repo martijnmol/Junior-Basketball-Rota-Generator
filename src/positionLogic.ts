@@ -1,30 +1,44 @@
-import { Rota, PeriodPositions, PositionRota, POSITION_ORDER, Position } from './interfaces';
+import { Player, Rota, PeriodPositions, PositionRota, POSITION_ORDER, Position } from './interfaces';
 
-export const buildDefaultPositions = (rota: Rota): PositionRota =>
-    rota.map(periodPlayers => {
-        const available = [...POSITION_ORDER];
-        const result = {} as PeriodPositions;
-        const unassigned: typeof periodPlayers = [];
+export const getPositionScore = (player: Player, position: Position): number =>
+    player.positionWeights?.[position] ?? 0;
 
-        // First pass: honour preferred positions (first-come, first-served)
-        for (const player of periodPlayers) {
-            const pref = player.preferredPosition;
-            const idx = pref ? available.indexOf(pref) : -1;
-            if (idx !== -1) {
-                result[pref!] = player.id;
-                available.splice(idx, 1);
-            } else {
-                unassigned.push(player);
+// Brute-force optimal assignment for one period (5! = 120 permutations).
+// Ties broken by first permutation found (natural POSITION_ORDER order).
+export const buildOptimalPeriodPositions = (periodPlayers: Player[]): PeriodPositions => {
+    let bestScore = -1;
+    let bestAssignment = {} as PeriodPositions;
+
+    const recurse = (remaining: Position[], current: Array<[Position, Player]>): void => {
+        if (current.length === periodPlayers.length) {
+            const score = current.reduce((s, [pos, pl]) => s + getPositionScore(pl, pos), 0);
+            if (score > bestScore) {
+                bestScore = score;
+                bestAssignment = {} as PeriodPositions;
+                for (const [pos, pl] of current) bestAssignment[pos] = pl.id;
             }
+            return;
         }
-
-        // Second pass: fill remaining slots in POSITION_ORDER order
-        for (const player of unassigned) {
-            result[available.shift()!] = player.id;
+        const depth = current.length;
+        for (let i = 0; i < remaining.length; i++) {
+            const pos = remaining[i];
+            remaining.splice(i, 1);
+            current.push([pos, periodPlayers[depth]]);
+            recurse(remaining, current);
+            current.pop();
+            remaining.splice(i, 0, pos);
         }
+    };
 
-        return result;
-    });
+    recurse([...POSITION_ORDER], []);
+    return bestAssignment;
+};
+
+export const buildOptimalPositions = (rota: Rota): PositionRota =>
+    rota.map(periodPlayers => buildOptimalPeriodPositions(periodPlayers));
+
+// Kept for backward compatibility (same algorithm).
+export const buildDefaultPositions = buildOptimalPositions;
 
 export const swapPositions = (
     positions: PeriodPositions,

@@ -1,4 +1,4 @@
-import { buildDefaultPositions, swapPositions, getPlayerPosition } from './positionLogic';
+import { buildDefaultPositions, buildOptimalPeriodPositions, swapPositions, getPlayerPosition, getPositionScore } from './positionLogic';
 import { Player, Rota } from './interfaces';
 
 const makePlayer = (id: number): Player => ({
@@ -28,10 +28,10 @@ describe('buildDefaultPositions', () => {
         expect(buildDefaultPositions([])).toEqual([]);
     });
 
-    it('honours a single player preferred position', () => {
+    it('honours a single player position weight', () => {
         const rota: Rota = [
             [
-                { ...makePlayer(1), preferredPosition: 'RC' },
+                { ...makePlayer(1), positionWeights: { RC: 100 } },
                 makePlayer(2), makePlayer(3), makePlayer(4), makePlayer(5),
             ],
         ];
@@ -39,31 +39,31 @@ describe('buildDefaultPositions', () => {
         expect(result[0].RC).toBe(1);
     });
 
-    it('all players get their preferred positions when no conflicts', () => {
+    it('all players get their highest-weight positions when no conflicts', () => {
         const rota: Rota = [
             [
-                { ...makePlayer(1), preferredPosition: 'RC' },
-                { ...makePlayer(2), preferredPosition: 'PG' },
-                { ...makePlayer(3), preferredPosition: 'LF' },
-                { ...makePlayer(4), preferredPosition: 'RF' },
-                { ...makePlayer(5), preferredPosition: 'LC' },
+                { ...makePlayer(1), positionWeights: { RC: 100 } },
+                { ...makePlayer(2), positionWeights: { PG: 100 } },
+                { ...makePlayer(3), positionWeights: { LF: 100 } },
+                { ...makePlayer(4), positionWeights: { RF: 100 } },
+                { ...makePlayer(5), positionWeights: { LC: 100 } },
             ],
         ];
         const result = buildDefaultPositions(rota);
         expect(result[0]).toEqual({ PG: 2, LF: 3, RF: 4, LC: 5, RC: 1 });
     });
 
-    it('falls back gracefully when two players prefer the same position', () => {
+    it('falls back gracefully when two players have equal weight for the same position', () => {
         const rota: Rota = [
             [
-                { ...makePlayer(1), preferredPosition: 'PG' },
-                { ...makePlayer(2), preferredPosition: 'PG' },
+                { ...makePlayer(1), positionWeights: { PG: 100 } },
+                { ...makePlayer(2), positionWeights: { PG: 100 } },
                 makePlayer(3), makePlayer(4), makePlayer(5),
             ],
         ];
         const result = buildDefaultPositions(rota);
-        // First player wins the preferred slot; all 5 positions filled exactly once
-        expect(result[0].PG).toBe(1);
+        // One player wins PG; all 5 positions filled exactly once
+        expect([1, 2]).toContain(result[0].PG);
         const assigned = Object.values(result[0]);
         expect(assigned.sort()).toEqual([1, 2, 3, 4, 5].sort());
     });
@@ -85,6 +85,38 @@ describe('swapPositions', () => {
     it('is a no-op when swapping a position with itself', () => {
         const positions = { PG: 1, LF: 2, RF: 3, LC: 4, RC: 5 };
         expect(swapPositions(positions, 'PG', 'PG')).toEqual(positions);
+    });
+});
+
+describe('getPositionScore', () => {
+    it('returns the weight for a position the player has', () => {
+        const player = { ...makePlayer(1), positionWeights: { PG: 80, LF: 20 } };
+        expect(getPositionScore(player, 'PG')).toBe(80);
+        expect(getPositionScore(player, 'LF')).toBe(20);
+    });
+
+    it('returns 0 for a position with no weight set', () => {
+        const player = { ...makePlayer(1), positionWeights: { PG: 80 } };
+        expect(getPositionScore(player, 'LC')).toBe(0);
+    });
+
+    it('returns 0 when positionWeights is undefined', () => {
+        expect(getPositionScore(makePlayer(1), 'PG')).toBe(0);
+    });
+});
+
+describe('buildOptimalPeriodPositions', () => {
+    it('assigns the highest-score combination', () => {
+        const players = [
+            { ...makePlayer(1), positionWeights: { RC: 90 } },
+            { ...makePlayer(2), positionWeights: { PG: 90 } },
+            makePlayer(3), makePlayer(4), makePlayer(5),
+        ];
+        const result = buildOptimalPeriodPositions(players);
+        expect(result.RC).toBe(1);
+        expect(result.PG).toBe(2);
+        const assigned = Object.values(result);
+        expect(assigned.sort()).toEqual([1, 2, 3, 4, 5].sort());
     });
 });
 

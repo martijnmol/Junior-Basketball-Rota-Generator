@@ -51,7 +51,7 @@ describe('savePlayers', () => {
     expect(putCall[1].method).toBe('PUT');
     const body = JSON.parse(putCall[1].body);
     // First row is headers
-    expect(body.values[0]).toEqual(['id', 'name', 'isPresent', 'preferredPosition', 'jerseyNumber']);
+    expect(body.values[0]).toEqual(['id', 'name', 'isPresent', 'positionWeights', 'jerseyNumber']);
     // Subsequent rows are player data (periodsPlayed/lastPlayedPeriod are runtime-only, not stored)
     expect(body.values[1]).toEqual([1, 'Alex', true, '', '']);
     expect(body.values[2]).toEqual([2, 'Ben', false, '', '']);
